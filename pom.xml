@@ -52,6 +52,23 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>de.opengamebackend</groupId>
+			<artifactId>net</artifactId>
+			<version>0.0.13-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>de.opengamebackend</groupId>
+			<artifactId>util</artifactId>
+			<version>0.0.4-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>de.opengamebackend</groupId>
+			<artifactId>test</artifactId>
+			<version>0.0.4-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -80,6 +97,21 @@
 			<id>spring-milestones</id>
 			<name>Spring Milestones</name>
 			<url>https://repo.spring.io/milestone</url>
+		</repository>
+		<repository>
+			<id>github-net</id>
+			<name>GitHub Packages (net)</name>
+			<url>https://maven.pkg.github.com/open-game-backend/net</url>
+		</repository>
+		<repository>
+			<id>github-util</id>
+			<name>GitHub Packages (util)</name>
+			<url>https://maven.pkg.github.com/open-game-backend/util</url>
+		</repository>
+		<repository>
+			<id>github-test</id>
+			<name>GitHub Packages (test)</name>
+			<url>https://maven.pkg.github.com/open-game-backend/test</url>
 		</repository>
 	</repositories>
 
