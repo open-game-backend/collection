@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: open-game-backend-collection
+
+server:
+  port: 9003
+
+de:
+  opengamebackend:
+    application:
+      version: @project.version@
+
+logging:
+  level:
+    org.zalando.logbook: TRACE
