@@ -127,4 +127,11 @@
 		</repository>
 	</repositories>
 
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages (collection)</name>
+			<url>https://maven.pkg.github.com/open-game-backend/collection</url>
+		</repository>
+	</distributionManagement>
 </project>
