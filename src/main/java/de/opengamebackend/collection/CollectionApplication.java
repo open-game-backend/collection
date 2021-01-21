@@ -9,12 +9,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableOpenGameBackendUtils
 public class CollectionApplication {
 	@Bean
+	@Profile("!test")
 	public OpenAPI customOpenAPI(ApplicationConfig applicationConfig) {
 		return new OpenAPI().info(new Info()
 				.title("Open Game Backend Collection")
