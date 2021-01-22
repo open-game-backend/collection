@@ -23,7 +23,7 @@ public class CollectionController {
         this.collectionService = collectionService;
     }
 
-    @GetMapping("/collection")
+    @GetMapping("/client/collection")
     @Operation(summary = "Gets the full item collection of the player.")
     @ApiResponses(value = {
             @ApiResponse(

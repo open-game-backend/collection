@@ -31,6 +31,6 @@ public class CollectionControllerIntegrationTests {
 
     @Test
     public void whenGetCollection_thenOk() throws Exception {
-        httpRequestUtils.assertGetOk(mvc, "/collection", GetCollectionResponse.class, "testId");
+        httpRequestUtils.assertGetOk(mvc, "/client/collection", GetCollectionResponse.class, "testId");
     }
 }
