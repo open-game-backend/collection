@@ -2,6 +2,7 @@ package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
 import de.opengamebackend.collection.model.entities.CollectionItem;
+import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponseItem;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CollectionService {
@@ -35,7 +37,9 @@ public class CollectionService {
             GetCollectionResponseItem responseItem = new GetCollectionResponseItem();
             responseItem.setId(item.getItemDefinition().getId());
             responseItem.setCount(item.getCount());
-            responseItem.setType(item.getItemDefinition().getItemType().getType());
+            responseItem.setTags(item.getItemDefinition().getItemTags().stream()
+                    .map(ItemTag::getTag)
+                    .collect(Collectors.toList()));
 
             collection.add(responseItem);
         }

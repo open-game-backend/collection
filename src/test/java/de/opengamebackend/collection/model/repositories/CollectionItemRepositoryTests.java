@@ -2,7 +2,8 @@ package de.opengamebackend.collection.model.repositories;
 
 import de.opengamebackend.collection.model.entities.CollectionItem;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
-import de.opengamebackend.collection.model.entities.ItemType;
+import de.opengamebackend.collection.model.entities.ItemTag;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -28,17 +29,17 @@ public class CollectionItemRepositoryTests {
     @Test
     public void givenItems_whenFindByPlayerId_thenReturnItems() {
         // GIVEN
-        ItemType itemType = new ItemType("testType");
-        entityManager.persist(itemType);
+        ItemTag itemTag = new ItemTag("testType");
+        entityManager.persist(itemTag);
 
         ItemDefinition itemDefinition1 = new ItemDefinition();
         itemDefinition1.setId("testDefinition1");
-        itemDefinition1.setItemType(itemType);
+        itemDefinition1.setItemTags(Lists.list(itemTag));
         entityManager.persist(itemDefinition1);
 
         ItemDefinition itemDefinition2 = new ItemDefinition();
         itemDefinition2.setId("testDefinition2");
-        itemDefinition2.setItemType(itemType);
+        itemDefinition2.setItemTags(Lists.list(itemTag));
         entityManager.persist(itemDefinition2);
 
         String playerId = "testPlayerId";

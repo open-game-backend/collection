@@ -2,7 +2,7 @@ package de.opengamebackend.collection.controller;
 
 import de.opengamebackend.collection.model.entities.CollectionItem;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
-import de.opengamebackend.collection.model.entities.ItemType;
+import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -41,16 +41,16 @@ public class CollectionServiceTests {
         // GIVEN
         String playerId = "testPlayerId";
 
-        ItemType itemType = mock(ItemType.class);
-        when(itemType.getType()).thenReturn("testItemType");
+        ItemTag itemTag = mock(ItemTag.class);
+        when(itemTag.getTag()).thenReturn("testItemTag");
 
         ItemDefinition itemDefinition1 = mock(ItemDefinition.class);
         when(itemDefinition1.getId()).thenReturn("testItemDefinition1");
-        when(itemDefinition1.getItemType()).thenReturn(itemType);
+        when(itemDefinition1.getItemTags()).thenReturn(Lists.list(itemTag));
 
         ItemDefinition itemDefinition2 = mock(ItemDefinition.class);
         when(itemDefinition2.getId()).thenReturn("testItemDefinition2");
-        when(itemDefinition2.getItemType()).thenReturn(itemType);
+        when(itemDefinition2.getItemTags()).thenReturn(Lists.list(itemTag));
 
         CollectionItem item1 = mock(CollectionItem.class);
         when(item1.getItemDefinition()).thenReturn(itemDefinition1);
@@ -70,10 +70,14 @@ public class CollectionServiceTests {
         assertThat(response.getCollection()).isNotNull();
         assertThat(response.getCollection()).hasSize(2);
         assertThat(response.getCollection().get(0).getId()).isEqualTo(itemDefinition1.getId());
-        assertThat(response.getCollection().get(0).getType()).isEqualTo(itemType.getType());
+        assertThat(response.getCollection().get(0).getTags()).isNotNull();
+        assertThat(response.getCollection().get(0).getTags()).hasSize(1);
+        assertThat(response.getCollection().get(0).getTags().get(0)).isEqualTo(itemTag.getTag());
         assertThat(response.getCollection().get(0).getCount()).isEqualTo(item1.getCount());
         assertThat(response.getCollection().get(1).getId()).isEqualTo(itemDefinition2.getId());
-        assertThat(response.getCollection().get(1).getType()).isEqualTo(itemType.getType());
+        assertThat(response.getCollection().get(1).getTags()).isNotNull();
+        assertThat(response.getCollection().get(1).getTags()).hasSize(1);
+        assertThat(response.getCollection().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
         assertThat(response.getCollection().get(1).getCount()).isEqualTo(item2.getCount());
     }
 }
