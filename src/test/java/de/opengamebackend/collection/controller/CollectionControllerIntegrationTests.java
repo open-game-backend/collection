@@ -1,6 +1,7 @@
 package de.opengamebackend.collection.controller;
 
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
+import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.test.HttpRequestUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,5 +33,10 @@ public class CollectionControllerIntegrationTests {
     @Test
     public void whenGetCollection_thenOk() throws Exception {
         httpRequestUtils.assertGetOk(mvc, "/client/collection", GetCollectionResponse.class, "testId");
+    }
+
+    @Test
+    public void whenGetItemDefinitions_thenOk() throws Exception {
+        httpRequestUtils.assertGetOk(mvc, "/admin/itemdefinitions", GetItemDefinitionsResponse.class);
     }
 }

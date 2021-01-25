@@ -1,6 +1,7 @@
 package de.opengamebackend.collection.controller;
 
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
+import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import de.opengamebackend.net.HttpHeader;
@@ -41,6 +42,21 @@ public class CollectionController {
     public ResponseEntity<GetCollectionResponse> getCollection(@RequestHeader(HttpHeader.PLAYER_ID) String playerId)
             throws ApiException {
         GetCollectionResponse response = collectionService.get(playerId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/admin/itemdefinitions")
+    @Operation(summary = "Gets the definitions of all items and tags.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Definitions fetched.",
+                    content = { @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GetItemDefinitionsResponse.class)) })
+    })
+    public ResponseEntity<GetItemDefinitionsResponse> getItemDefinitions() {
+        GetItemDefinitionsResponse response = collectionService.getItemDefinitions();
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

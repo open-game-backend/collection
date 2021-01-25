@@ -4,7 +4,10 @@ import de.opengamebackend.collection.model.entities.CollectionItem;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
 import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
+import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
+import de.opengamebackend.collection.model.repositories.ItemTagRepository;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
+import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.assertj.core.util.Lists;
@@ -18,14 +21,18 @@ import static org.mockito.Mockito.when;
 
 public class CollectionServiceTests {
     private CollectionItemRepository collectionItemRepository;
+    private ItemDefinitionRepository itemDefinitionRepository;
+    private ItemTagRepository itemTagRepository;
 
     private CollectionService collectionService;
 
     @BeforeEach
     public void beforeEach() {
         collectionItemRepository = mock(CollectionItemRepository.class);
+        itemDefinitionRepository = mock(ItemDefinitionRepository.class);
+        itemTagRepository = mock(ItemTagRepository.class);
 
-        collectionService = new CollectionService(collectionItemRepository);
+        collectionService = new CollectionService(collectionItemRepository, itemDefinitionRepository, itemTagRepository);
     }
 
     @Test
@@ -79,5 +86,60 @@ public class CollectionServiceTests {
         assertThat(response.getCollection().get(1).getTags()).hasSize(1);
         assertThat(response.getCollection().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
         assertThat(response.getCollection().get(1).getCount()).isEqualTo(item2.getCount());
+    }
+
+    @Test
+    public void givenItemTags_whenGetItemDefinitions_thenReturnTags() {
+        // GIVEN
+        ItemTag itemTag1 = mock(ItemTag.class);
+        when(itemTag1.getTag()).thenReturn("testItemTag1");
+
+        ItemTag itemTag2 = mock(ItemTag.class);
+        when(itemTag2.getTag()).thenReturn("testItemTag2");
+
+        when(itemTagRepository.findAll()).thenReturn(Lists.list(itemTag1, itemTag2));
+
+        // WHEN
+        GetItemDefinitionsResponse response = collectionService.getItemDefinitions();
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getItemTags()).isNotNull();
+        assertThat(response.getItemTags()).hasSize(2);
+        assertThat(response.getItemTags().get(0)).isEqualTo(itemTag1.getTag());
+        assertThat(response.getItemTags().get(1)).isEqualTo(itemTag2.getTag());
+    }
+
+    @Test
+    public void givenItemDefinitions_whenGetItemDefinitions_thenReturnDefinitions() {
+        // GIVEN
+        ItemTag itemTag = mock(ItemTag.class);
+        when(itemTag.getTag()).thenReturn("testItemTag");
+
+        ItemDefinition itemDefinition1 = mock(ItemDefinition.class);
+        when(itemDefinition1.getId()).thenReturn("testItemDefinition1");
+        when(itemDefinition1.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        ItemDefinition itemDefinition2 = mock(ItemDefinition.class);
+        when(itemDefinition2.getId()).thenReturn("testItemDefinition2");
+        when(itemDefinition2.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(itemDefinition1, itemDefinition2));
+
+        // WHEN
+        GetItemDefinitionsResponse response = collectionService.getItemDefinitions();
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getItemDefinitions()).isNotNull();
+        assertThat(response.getItemDefinitions()).hasSize(2);
+        assertThat(response.getItemDefinitions().get(0).getId()).isEqualTo(itemDefinition1.getId());
+        assertThat(response.getItemDefinitions().get(0).getTags()).isNotNull();
+        assertThat(response.getItemDefinitions().get(0).getTags()).hasSize(1);
+        assertThat(response.getItemDefinitions().get(0).getTags().get(0)).isEqualTo(itemTag.getTag());
+        assertThat(response.getItemDefinitions().get(1).getId()).isEqualTo(itemDefinition2.getId());
+        assertThat(response.getItemDefinitions().get(1).getTags()).isNotNull();
+        assertThat(response.getItemDefinitions().get(1).getTags()).hasSize(1);
+        assertThat(response.getItemDefinitions().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
     }
 }

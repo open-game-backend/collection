@@ -1,6 +1,7 @@
 package de.opengamebackend.collection.model.entities;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -11,6 +12,10 @@ public class ItemDefinition {
 
     @ManyToMany
     private List<ItemTag> itemTags;
+
+    public ItemDefinition() {
+        itemTags = new ArrayList<>();
+    }
 
     public String getId() {
         return id;
