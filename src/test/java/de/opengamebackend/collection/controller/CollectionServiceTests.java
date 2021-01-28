@@ -6,6 +6,7 @@ import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
+import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -13,11 +14,13 @@ import de.opengamebackend.net.ApiException;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class CollectionServiceTests {
     private CollectionItemRepository collectionItemRepository;
@@ -141,5 +144,91 @@ public class CollectionServiceTests {
         assertThat(response.getItemDefinitions().get(1).getTags()).isNotNull();
         assertThat(response.getItemDefinitions().get(1).getTags()).hasSize(1);
         assertThat(response.getItemDefinitions().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemTags_whenPutItemTags_thenAddsNewTags() throws ApiException {
+        // GIVEN
+        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
+        when(request.getItemTags()).thenReturn(Lists.list("A", "B"));
+
+        // WHEN
+        collectionService.putItemTags(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemTagRepository).saveAll(argument.capture());
+
+        List<ItemTag> savedTags = argument.getValue();
+
+        assertThat(savedTags).isNotNull();
+        assertThat(savedTags).hasSize(2);
+        assertThat(savedTags.get(0).getTag()).isEqualTo(request.getItemTags().get(0));
+        assertThat(savedTags.get(1).getTag()).isEqualTo(request.getItemTags().get(1));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemTags_whenPutItemTags_thenRemovesObsoleteTags() throws ApiException {
+        // GIVEN
+        ItemTag itemTagA = mock(ItemTag.class);
+        when(itemTagA.getTag()).thenReturn("A");
+
+        ItemTag itemTagB = mock(ItemTag.class);
+        when(itemTagB.getTag()).thenReturn("B");
+
+        List<ItemTag> existingTags = Lists.list(itemTagA, itemTagB);
+        when(itemTagRepository.findAll()).thenReturn(existingTags);
+
+        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
+        when(request.getItemTags()).thenReturn(Lists.list("C"));
+
+        // WHEN
+        collectionService.putItemTags(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemTagRepository).deleteAll(argument.capture());
+
+        List<ItemTag> deletedTags = argument.getValue();
+
+        assertThat(deletedTags).isNotNull();
+        assertThat(deletedTags).hasSize(2);
+        assertThat(deletedTags.get(0)).isEqualTo(itemTagA);
+        assertThat(deletedTags.get(1)).isEqualTo(itemTagB);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemTags_whenPutItemTags_thenRetainsExistingTags() throws ApiException {
+        // GIVEN
+        ItemTag itemTagA = mock(ItemTag.class);
+        when(itemTagA.getTag()).thenReturn("A");
+
+        ItemTag itemTagB = mock(ItemTag.class);
+        when(itemTagB.getTag()).thenReturn("B");
+
+        List<ItemTag> existingTags = Lists.list(itemTagA, itemTagB);
+        when(itemTagRepository.findAll()).thenReturn(existingTags);
+
+        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
+        when(request.getItemTags()).thenReturn(Lists.list("A", "B", "C"));
+
+        // WHEN
+        collectionService.putItemTags(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemTagRepository).deleteAll(argument.capture());
+        List<ItemTag> deletedTags = argument.getValue();
+
+        verify(itemTagRepository).saveAll(argument.capture());
+        List<ItemTag> savedTags = argument.getValue();
+
+        assertThat(deletedTags).isNotNull();
+        assertThat(deletedTags).doesNotContain(itemTagA, itemTagB);
+        assertThat(savedTags).isNotNull();
+        assertThat(savedTags).doesNotContain(itemTagA, itemTagB);
     }
 }

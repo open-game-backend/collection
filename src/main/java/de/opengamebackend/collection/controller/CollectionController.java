@@ -1,5 +1,6 @@
 package de.opengamebackend.collection.controller;
 
+import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -12,9 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class CollectionController {
@@ -36,7 +35,7 @@ public class CollectionController {
             @ApiResponse(
                     responseCode = "400",
                     description =
-                            "Error " + ApiErrors.MISSING_PLAYER_ID_CODE + ": " + ApiErrors.MISSING_PLAYER_ID_MESSAGE + "<br />",
+                            "Error " + ApiErrors.MISSING_PLAYER_ID_CODE + ": " + ApiErrors.MISSING_PLAYER_ID_MESSAGE,
                     content = { @Content })
     })
     public ResponseEntity<GetCollectionResponse> getCollection(@RequestHeader(HttpHeader.PLAYER_ID) String playerId)
@@ -58,5 +57,21 @@ public class CollectionController {
     public ResponseEntity<GetItemDefinitionsResponse> getItemDefinitions() {
         GetItemDefinitionsResponse response = collectionService.getItemDefinitions();
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PutMapping("/admin/itemtags")
+    @Operation(summary = "Sets the definitions of all tags.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Tags updated."),
+            @ApiResponse(
+                    responseCode = "400",
+                    description =
+                            "Error " + ApiErrors.ITEM_TAG_IN_USE_CODE + ": " + ApiErrors.ITEM_TAG_IN_USE_MESSAGE)
+    })
+    public ResponseEntity<Void> putItemTags(@RequestBody PutItemTagsRequest request) throws ApiException {
+        collectionService.putItemTags(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

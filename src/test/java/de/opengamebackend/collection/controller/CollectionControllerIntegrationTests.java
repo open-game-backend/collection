@@ -1,8 +1,10 @@
 package de.opengamebackend.collection.controller;
 
+import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.test.HttpRequestUtils;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureTestEntityManager;
@@ -38,5 +40,12 @@ public class CollectionControllerIntegrationTests {
     @Test
     public void whenGetItemDefinitions_thenOk() throws Exception {
         httpRequestUtils.assertGetOk(mvc, "/admin/itemdefinitions", GetItemDefinitionsResponse.class);
+    }
+
+    @Test
+    public void whenPutItemTags_thenOk() throws Exception {
+        PutItemTagsRequest request =
+                new PutItemTagsRequest(Lists.list("Head", "Chest", "Feet", "Main Hand", "Epic", "A", "B"));
+        httpRequestUtils.assertPutOk(mvc, "/admin/itemtags", request);
     }
 }

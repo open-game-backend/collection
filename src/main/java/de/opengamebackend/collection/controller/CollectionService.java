@@ -1,12 +1,14 @@
 package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import de.opengamebackend.collection.model.entities.CollectionItem;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
 import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
+import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponseItem;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
@@ -74,5 +76,38 @@ public class CollectionService {
         }
 
         return new GetItemDefinitionsResponse(itemTags, itemDefinitions);
+    }
+
+    public void putItemTags(PutItemTagsRequest request) throws ApiException {
+        List<ItemDefinition> itemDefinitions = Lists.newArrayList(itemDefinitionRepository.findAll());
+        List<ItemTag> itemTags = Lists.newArrayList(itemTagRepository.findAll());
+
+        // Check tags to remove.
+        List<ItemTag> tagsToRemove = new ArrayList<>();
+
+        for (ItemTag itemTag : itemTags) {
+            if (!request.getItemTags().contains(itemTag.getTag())) {
+                // Check if tag still in use.
+                for (ItemDefinition itemDefinition : itemDefinitions) {
+                    if (itemDefinition.getItemTags().contains(itemTag)) {
+                        throw new ApiException(ApiErrors.ITEM_TAG_IN_USE_CODE, ApiErrors.ITEM_TAG_IN_USE_MESSAGE);
+                    }
+                }
+
+                tagsToRemove.add(itemTag);
+            }
+        }
+
+        List<ItemTag> tagsToAdd = new ArrayList<>();
+
+        for (String requestedTag : request.getItemTags()) {
+            if (itemTags.stream().noneMatch(t -> t.getTag().equals(requestedTag))) {
+                tagsToAdd.add(new ItemTag(requestedTag));
+            }
+        }
+
+        // Update database.
+        itemTagRepository.deleteAll(tagsToRemove);
+        itemTagRepository.saveAll(tagsToAdd);
     }
 }
