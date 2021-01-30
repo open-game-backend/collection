@@ -1,14 +1,14 @@
 package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import de.opengamebackend.collection.model.entities.CollectionItem;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
 import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
-import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponseItem;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
@@ -19,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +38,7 @@ public class CollectionService {
         this.itemTagRepository = itemTagRepository;
     }
 
-    public GetCollectionResponse get(String playerId) throws ApiException {
+    public GetCollectionResponse getCollection(String playerId) throws ApiException {
         if (Strings.isNullOrEmpty(playerId)) {
             throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
         }
@@ -78,36 +80,79 @@ public class CollectionService {
         return new GetItemDefinitionsResponse(itemTags, itemDefinitions);
     }
 
-    public void putItemTags(PutItemTagsRequest request) throws ApiException {
-        List<ItemDefinition> itemDefinitions = Lists.newArrayList(itemDefinitionRepository.findAll());
-        List<ItemTag> itemTags = Lists.newArrayList(itemTagRepository.findAll());
-
-        // Check tags to remove.
-        List<ItemTag> tagsToRemove = new ArrayList<>();
-
-        for (ItemTag itemTag : itemTags) {
-            if (!request.getItemTags().contains(itemTag.getTag())) {
-                // Check if tag still in use.
-                for (ItemDefinition itemDefinition : itemDefinitions) {
-                    if (itemDefinition.getItemTags().contains(itemTag)) {
-                        throw new ApiException(ApiErrors.ITEM_TAG_IN_USE_CODE, ApiErrors.ITEM_TAG_IN_USE_MESSAGE);
-                    }
+    public void putItemDefinitions(PutItemDefinitionsRequest request) throws ApiException {
+        // Check data integrity.
+        for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
+            for (String itemTag : itemDefinition.getTags()) {
+                if (!request.getItemTags().contains(itemTag)) {
+                    throw new ApiException(ApiErrors.UNKNOWN_ITEM_TAG_CODE,
+                            ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE + " - Item Definition: " + itemDefinition.getId()
+                                    + " - Item Tag: " + itemTag);
                 }
-
-                tagsToRemove.add(itemTag);
-            }
-        }
-
-        List<ItemTag> tagsToAdd = new ArrayList<>();
-
-        for (String requestedTag : request.getItemTags()) {
-            if (itemTags.stream().noneMatch(t -> t.getTag().equals(requestedTag))) {
-                tagsToAdd.add(new ItemTag(requestedTag));
             }
         }
 
         // Update database.
-        itemTagRepository.deleteAll(tagsToRemove);
-        itemTagRepository.saveAll(tagsToAdd);
+        HashMap<String, ItemTag> itemTags = new HashMap<>();
+        HashMap<String, ItemDefinition> itemDefinitions = new HashMap<>();
+
+        ArrayList<ItemTag> itemTagsToSave = new ArrayList<>();
+        ArrayList<ItemTag> itemTagsToDelete = new ArrayList<>();
+        ArrayList<ItemDefinition> itemDefinitionsToSave = new ArrayList<>();
+        ArrayList<ItemDefinition> itemDefinitionsToDelete = new ArrayList<>();
+
+        for (ItemTag itemTag : itemTagRepository.findAll()) {
+            itemTags.put(itemTag.getTag(), itemTag);
+        }
+
+        for (ItemDefinition itemDefinition : itemDefinitionRepository.findAll()) {
+            itemDefinitions.put(itemDefinition.getId(), itemDefinition);
+        }
+
+        for (String itemTag : request.getItemTags()) {
+            ItemTag itemTagEntity = itemTags.get(itemTag);
+
+            if (itemTagEntity == null) {
+                itemTagEntity = new ItemTag(itemTag);
+                itemTagsToSave.add(itemTagEntity);
+                itemTags.put(itemTag, itemTagEntity);
+            }
+        }
+
+        for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
+            ItemDefinition itemDefinitionEntity = itemDefinitions.get(itemDefinition.getId());
+
+            if (itemDefinitionEntity == null) {
+                itemDefinitionEntity = new ItemDefinition();
+                itemDefinitionEntity.setId(itemDefinition.getId());
+                itemDefinitions.put(itemDefinition.getId(), itemDefinitionEntity);
+            }
+
+            itemDefinitionEntity.setItemTags(itemDefinition.getTags().stream()
+                    .map(itemTags::get)
+                    .collect(Collectors.toList()));
+
+            itemDefinitionsToSave.add(itemDefinitionEntity);
+        }
+
+        // Clean up database.
+        for (Map.Entry<String, ItemTag> itemTag : itemTags.entrySet()) {
+            if (!request.getItemTags().contains(itemTag.getKey())) {
+                itemTagsToDelete.add(itemTag.getValue());
+            }
+        }
+
+        for (Map.Entry<String, ItemDefinition> itemDefinition : itemDefinitions.entrySet()) {
+            if (request.getItemDefinitions().stream().noneMatch(i -> i.getId().equals(itemDefinition.getKey()))) {
+                itemDefinitionsToDelete.add(itemDefinition.getValue());
+            }
+        }
+
+        // Apply changes.
+        itemTagRepository.saveAll(itemTagsToSave);
+        itemTagRepository.deleteAll(itemTagsToDelete);
+
+        itemDefinitionRepository.saveAll(itemDefinitionsToSave);
+        itemDefinitionRepository.deleteAll(itemDefinitionsToDelete);
     }
 }

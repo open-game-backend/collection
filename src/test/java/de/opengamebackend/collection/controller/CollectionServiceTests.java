@@ -6,7 +6,8 @@ import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
-import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -42,7 +43,7 @@ public class CollectionServiceTests {
     public void givenMissingPlayerId_whenGetCollection_thenThrowException() {
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
-                .isThrownBy(() -> collectionService.get(""))
+                .isThrownBy(() -> collectionService.getCollection(""))
                 .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
     }
 
@@ -73,7 +74,7 @@ public class CollectionServiceTests {
         when(collectionItemRepository.findByPlayerId(playerId)).thenReturn(Lists.list(item1, item2));
 
         // WHEN
-        GetCollectionResponse response = collectionService.get(playerId);
+        GetCollectionResponse response = collectionService.getCollection(playerId);
 
         // THEN
         assertThat(response).isNotNull();
@@ -148,13 +149,13 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemTags_thenAddsNewTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenAddsNewTags() throws ApiException {
         // GIVEN
-        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
         when(request.getItemTags()).thenReturn(Lists.list("A", "B"));
 
         // WHEN
-        collectionService.putItemTags(request);
+        collectionService.putItemDefinitions(request);
 
         // THEN
         ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
@@ -170,7 +171,7 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemTags_thenRemovesObsoleteTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenRemovesObsoleteTags() throws ApiException {
         // GIVEN
         ItemTag itemTagA = mock(ItemTag.class);
         when(itemTagA.getTag()).thenReturn("A");
@@ -181,11 +182,10 @@ public class CollectionServiceTests {
         List<ItemTag> existingTags = Lists.list(itemTagA, itemTagB);
         when(itemTagRepository.findAll()).thenReturn(existingTags);
 
-        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
-        when(request.getItemTags()).thenReturn(Lists.list("C"));
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
 
         // WHEN
-        collectionService.putItemTags(request);
+        collectionService.putItemDefinitions(request);
 
         // THEN
         ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
@@ -201,7 +201,7 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemTags_thenRetainsExistingTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenRetainsExistingTags() throws ApiException {
         // GIVEN
         ItemTag itemTagA = mock(ItemTag.class);
         when(itemTagA.getTag()).thenReturn("A");
@@ -212,11 +212,11 @@ public class CollectionServiceTests {
         List<ItemTag> existingTags = Lists.list(itemTagA, itemTagB);
         when(itemTagRepository.findAll()).thenReturn(existingTags);
 
-        PutItemTagsRequest request = mock(PutItemTagsRequest.class);
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
         when(request.getItemTags()).thenReturn(Lists.list("A", "B", "C"));
 
         // WHEN
-        collectionService.putItemTags(request);
+        collectionService.putItemDefinitions(request);
 
         // THEN
         ArgumentCaptor<List<ItemTag>> argument = ArgumentCaptor.forClass(List.class);
@@ -230,5 +230,101 @@ public class CollectionServiceTests {
         assertThat(deletedTags).doesNotContain(itemTagA, itemTagB);
         assertThat(savedTags).isNotNull();
         assertThat(savedTags).doesNotContain(itemTagA, itemTagB);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemDefinitions_whenPutItemDefinitions_thenAddsNewDefinitions() throws ApiException {
+        // GIVEN
+        PutItemDefinitionsRequestItem item1 = mock(PutItemDefinitionsRequestItem.class);
+        when(item1.getId()).thenReturn("Item1");
+
+        PutItemDefinitionsRequestItem item2 = mock(PutItemDefinitionsRequestItem.class);
+        when(item2.getId()).thenReturn("Item2");
+
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
+        when(request.getItemDefinitions()).thenReturn(Lists.list(item1, item2));
+
+        // WHEN
+        collectionService.putItemDefinitions(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemDefinition>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemDefinitionRepository).saveAll(argument.capture());
+
+        List<ItemDefinition> savedDefinitions = argument.getValue();
+
+        assertThat(savedDefinitions).isNotNull();
+        assertThat(savedDefinitions).hasSize(2);
+        assertThat(savedDefinitions.get(0).getId()).isEqualTo(item1.getId());
+        assertThat(savedDefinitions.get(1).getId()).isEqualTo(item2.getId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemDefinitions_whenPutItemDefinitions_thenRemovesObsoleteDefinitions() throws ApiException {
+        // GIVEN
+        ItemDefinition item1 = mock(ItemDefinition.class);
+        when(item1.getId()).thenReturn("Item1");
+
+        ItemDefinition item2 = mock(ItemDefinition.class);
+        when(item2.getId()).thenReturn("Item2");
+
+        List<ItemDefinition> existingDefinitions = Lists.list(item1, item2);
+        when(itemDefinitionRepository.findAll()).thenReturn(existingDefinitions);
+
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
+
+        // WHEN
+        collectionService.putItemDefinitions(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemDefinition>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemDefinitionRepository).deleteAll(argument.capture());
+
+        List<ItemDefinition> deletedDefinitions = argument.getValue();
+
+        assertThat(deletedDefinitions).isNotNull();
+        assertThat(deletedDefinitions).hasSize(2);
+        assertThat(deletedDefinitions.get(0)).isEqualTo(item1);
+        assertThat(deletedDefinitions.get(1)).isEqualTo(item2);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemDefinitions_whenPutItemDefinitions_thenRetainsExistingDefinitions() throws ApiException {
+        // GIVEN
+        String itemId1 = "Item1";
+        String itemId2 = "Item2";
+
+        ItemDefinition item1 = mock(ItemDefinition.class);
+        when(item1.getId()).thenReturn(itemId1);
+
+        ItemDefinition item2 = mock(ItemDefinition.class);
+        when(item2.getId()).thenReturn(itemId2);
+
+        List<ItemDefinition> existingDefinitions = Lists.list(item1, item2);
+        when(itemDefinitionRepository.findAll()).thenReturn(existingDefinitions);
+
+        PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
+
+        PutItemDefinitionsRequestItem requestedItem1 = mock(PutItemDefinitionsRequestItem.class);
+        when(requestedItem1.getId()).thenReturn(itemId1);
+
+        PutItemDefinitionsRequestItem requestedItem2 = mock(PutItemDefinitionsRequestItem.class);
+        when(requestedItem2.getId()).thenReturn(itemId2);
+
+        when(request.getItemDefinitions()).thenReturn(Lists.list(requestedItem1, requestedItem2));
+
+        // WHEN
+        collectionService.putItemDefinitions(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemDefinition>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemDefinitionRepository).deleteAll(argument.capture());
+        List<ItemDefinition> deletedDefinitions = argument.getValue();
+
+        assertThat(deletedDefinitions).isNotNull();
+        assertThat(deletedDefinitions).doesNotContain(item1, item2);
     }
 }

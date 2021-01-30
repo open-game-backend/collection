@@ -1,6 +1,6 @@
 package de.opengamebackend.collection.controller;
 
-import de.opengamebackend.collection.model.requests.PutItemTagsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -40,7 +40,7 @@ public class CollectionController {
     })
     public ResponseEntity<GetCollectionResponse> getCollection(@RequestHeader(HttpHeader.PLAYER_ID) String playerId)
             throws ApiException {
-        GetCollectionResponse response = collectionService.get(playerId);
+        GetCollectionResponse response = collectionService.getCollection(playerId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -59,19 +59,19 @@ public class CollectionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PutMapping("/admin/itemtags")
-    @Operation(summary = "Sets the definitions of all tags.")
+    @PutMapping("/admin/itemdefinitions")
+    @Operation(summary = "Sets the definitions of all items and tags.")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "204",
-                    description = "Tags updated."),
+                    description = "Definitions updated."),
             @ApiResponse(
                     responseCode = "400",
                     description =
-                            "Error " + ApiErrors.ITEM_TAG_IN_USE_CODE + ": " + ApiErrors.ITEM_TAG_IN_USE_MESSAGE)
+                            "Error " + ApiErrors.UNKNOWN_ITEM_TAG_CODE + ": " + ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE)
     })
-    public ResponseEntity<Void> putItemTags(@RequestBody PutItemTagsRequest request) throws ApiException {
-        collectionService.putItemTags(request);
+    public ResponseEntity<Void> putItemDefinitions(@RequestBody PutItemDefinitionsRequest request) throws ApiException {
+        collectionService.putItemDefinitions(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
