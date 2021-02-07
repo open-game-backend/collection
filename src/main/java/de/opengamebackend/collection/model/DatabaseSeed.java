@@ -32,10 +32,10 @@ public class DatabaseSeed {
         ItemTag epicTag = getOrCreateItemTag("Epic");
 
         // Seed item definitions.
-        createItemDefinitionIfNotExists("Fancy Hat", headTag);
-        createItemDefinitionIfNotExists("Shiny Armor", chestTag);
-        createItemDefinitionIfNotExists("Mighty Sword", mainHandTag, epicTag);
-        createItemDefinitionIfNotExists("Rugged Boots", feetTag);
+        createItemDefinitionIfNotExists("FancyHat", headTag);
+        createItemDefinitionIfNotExists("ShinyArmor", chestTag);
+        createItemDefinitionIfNotExists("MightySword", mainHandTag, epicTag);
+        createItemDefinitionIfNotExists("RuggedBoots", feetTag);
     }
 
     @Transactional
