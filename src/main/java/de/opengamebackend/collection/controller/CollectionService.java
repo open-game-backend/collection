@@ -79,10 +79,16 @@ public class CollectionService {
             throw new ApiException(ApiErrors.INVALID_ITEM_COUNT_CODE, ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
         }
 
-        CollectionItem collectionItem = new CollectionItem();
-        collectionItem.setPlayerId(playerId);
-        collectionItem.setItemDefinition(itemDefinition);
-        collectionItem.setCount(request.getItemCount());
+        CollectionItem collectionItem =
+                collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition).orElse(null);
+
+        if (collectionItem == null) {
+            collectionItem = new CollectionItem();
+            collectionItem.setPlayerId(playerId);
+            collectionItem.setItemDefinition(itemDefinition);
+        }
+
+        collectionItem.setCount(collectionItem.getCount() + request.getItemCount());
 
         collectionItemRepository.save(collectionItem);
     }

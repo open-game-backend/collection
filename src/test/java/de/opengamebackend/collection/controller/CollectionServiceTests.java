@@ -173,6 +173,32 @@ public class CollectionServiceTests {
     }
 
     @Test
+    public void givenCollectionItems_whenAddCollectionItems_thenIncreasesCount() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        int oldCount = 2;
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getCount()).thenReturn(oldCount);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition)).thenReturn(Optional.of(collectionItem));
+
+        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+        request.setItemDefinitionId(itemDefinitionId);
+        request.setItemCount(3);
+
+        // WHEN
+        collectionService.addCollectionItems(playerId, request);
+
+        // THEN
+        verify(collectionItem).setCount(oldCount + request.getItemCount());
+        verify(collectionItemRepository).save(collectionItem);
+    }
+
+    @Test
     public void givenMissingPlayerId_whenPutCollectionItems_thenThrowException() {
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
