@@ -6,6 +6,8 @@ import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
+import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
+import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -90,6 +93,207 @@ public class CollectionServiceTests {
         assertThat(response.getCollection().get(1).getTags()).hasSize(1);
         assertThat(response.getCollection().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
         assertThat(response.getCollection().get(1).getCount()).isEqualTo(item2.getCount());
+    }
+
+    @Test
+    public void givenMissingPlayerId_whenAddCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.addCollectionItems(null, null))
+                .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+    }
+
+    @Test
+    public void givenMissingItemDefinitionId_whenAddCollectionItems_thenThrowException() {
+        // GIVEN
+        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.addCollectionItems("testPlayer", request))
+                .withMessage(ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenUnknownItemDefinition_whenAddCollectionItems_thenThrowException() {
+        // GIVEN
+        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+        request.setItemDefinitionId("testItemDefinition");
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.addCollectionItems("testPlayer", request))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenInvalidItemCount_whenAddCollectionItems_thenThrowException() {
+        // GIVEN
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+        request.setItemDefinitionId(itemDefinitionId);
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.addCollectionItems("testPlayer", request))
+                .withMessage(ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
+    }
+
+    @Test
+    public void givenCollectionItems_whenAddCollectionItems_thenSaveItems() throws ApiException {
+        // GIVEN
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+        request.setItemDefinitionId(itemDefinitionId);
+        request.setItemCount(2);
+
+        String playerId = "testPlayer";
+
+        // WHEN
+        collectionService.addCollectionItems(playerId, request);
+
+        // THEN
+        ArgumentCaptor<CollectionItem> argumentCaptor = ArgumentCaptor.forClass(CollectionItem.class);
+        verify(collectionItemRepository).save(argumentCaptor.capture());
+
+        CollectionItem savedItem = argumentCaptor.getValue();
+
+        assertThat(savedItem).isNotNull();
+        assertThat(savedItem.getPlayerId()).isEqualTo(playerId);
+        assertThat(savedItem.getItemDefinition()).isEqualTo(itemDefinition);
+        assertThat(savedItem.getCount()).isEqualTo(request.getItemCount());
+    }
+
+    @Test
+    public void givenMissingPlayerId_whenPutCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putCollectionItems(null, null, null))
+                .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+    }
+
+    @Test
+    public void givenMissingItemDefinitionId_whenPutCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putCollectionItems("testPlayer", null, null))
+                .withMessage(ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenUnknownItemDefinition_whenPutCollectionItems_thenThrowException() {
+        // GIVEN
+        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putCollectionItems("testPlayer", "testItemDefinition", request))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenInvalidItemCount_whenPutCollectionItems_thenThrowException() {
+        // GIVEN
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putCollectionItems("testPlayer", itemDefinitionId, request))
+                .withMessage(ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
+    }
+
+    @Test
+    public void givenInvalidItem_whenPutCollectionItems_thenThrowException() {
+        // GIVEN
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+        request.setItemCount(2);
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putCollectionItems("testPlayer", itemDefinitionId, request))
+                .withMessage(ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE);
+    }
+
+    @Test
+    public void givenCollectionItems_whenPutCollectionItems_thenSaveItems() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+        request.setItemCount(2);
+
+        // WHEN
+        collectionService.putCollectionItems(playerId, itemDefinitionId, request);
+
+        // THEN
+        verify(collectionItem).setCount(request.getItemCount());
+        verify(collectionItemRepository).save(collectionItem);
+    }
+
+    @Test
+    public void givenMissingPlayerId_whenRemoveCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.removeCollectionItems(null, null))
+                .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+    }
+
+    @Test
+    public void givenMissingItemDefinitionId_whenRemoveCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.removeCollectionItems("testPlayer", null))
+                .withMessage(ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenUnknownItemDefinition_whenRemoveCollectionItems_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.removeCollectionItems("testPlayer", "testItemDefinition"))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenCollectionItems_whenDeleteCollectionItems_thenDeleteItems() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        // WHEN
+        collectionService.removeCollectionItems(playerId, itemDefinitionId);
+
+        // THEN
+        verify(collectionItemRepository).deleteByPlayerIdAndItemDefinition(playerId, itemDefinition);
     }
 
     @Test
@@ -233,16 +437,37 @@ public class CollectionServiceTests {
     }
 
     @Test
+    public void givenUnknownItemTag_whenPutItemDefinitions_thenThrowException() {
+        // GIVEN
+        String itemTag = "A";
+
+        PutItemDefinitionsRequestItem itemDefinition = mock(PutItemDefinitionsRequestItem.class);
+        when(itemDefinition.getTags()).thenReturn(Lists.list(itemTag));
+
+        PutItemDefinitionsRequest request = new PutItemDefinitionsRequest();
+        request.setItemDefinitions(Lists.list(itemDefinition));
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putItemDefinitions(request))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE + " - Item Definition: null - Item Tag: " + itemTag);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void givenItemDefinitions_whenPutItemDefinitions_thenAddsNewDefinitions() throws ApiException {
         // GIVEN
+        String itemTag = "A";
+
         PutItemDefinitionsRequestItem item1 = mock(PutItemDefinitionsRequestItem.class);
         when(item1.getId()).thenReturn("Item1");
 
         PutItemDefinitionsRequestItem item2 = mock(PutItemDefinitionsRequestItem.class);
         when(item2.getId()).thenReturn("Item2");
+        when(item2.getTags()).thenReturn(Lists.list(itemTag));
 
         PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
+        when(request.getItemTags()).thenReturn(Lists.list(itemTag));
         when(request.getItemDefinitions()).thenReturn(Lists.list(item1, item2));
 
         // WHEN

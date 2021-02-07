@@ -67,4 +67,50 @@ public class CollectionItemRepositoryTests {
         assertThat(items.get(0)).isEqualTo(item1);
         assertThat(items.get(1)).isEqualTo(item2);
     }
+
+    @Test
+    public void givenItem_whenFindByPlayerIdAndItemDefinition_thenReturnItem() {
+        // GIVEN
+        ItemDefinition itemDefinition = new ItemDefinition();
+        itemDefinition.setId("testDefinition");
+        entityManager.persist(itemDefinition);
+
+        CollectionItem itemEntity = new CollectionItem();
+        itemEntity.setPlayerId("testPlayer");
+        itemEntity.setItemDefinition(itemDefinition);
+        itemEntity.setCount(1);
+        entityManager.persist(itemEntity);
+
+        entityManager.flush();
+
+        // WHEN
+        CollectionItem item =
+                collectionItemRepository.findByPlayerIdAndItemDefinition(itemEntity.getPlayerId(), itemDefinition)
+                        .orElse(null);
+
+        // THEN
+        assertThat(item).isEqualTo(itemEntity);
+    }
+
+    @Test
+    public void givenItem_whenDeleteByPlayerIdAndItemDefinition_thenDeleteItem() {
+        // GIVEN
+        ItemDefinition itemDefinition = new ItemDefinition();
+        itemDefinition.setId("testDefinition");
+        entityManager.persist(itemDefinition);
+
+        CollectionItem itemEntity = new CollectionItem();
+        itemEntity.setPlayerId("testPlayer");
+        itemEntity.setItemDefinition(itemDefinition);
+        itemEntity.setCount(1);
+        entityManager.persist(itemEntity);
+
+        entityManager.flush();
+
+        // WHEN
+        collectionItemRepository.deleteByPlayerIdAndItemDefinition(itemEntity.getPlayerId(), itemDefinition);
+
+        // THEN
+        assertThat(entityManager.find(itemEntity.getClass(), itemEntity.getId())).isNull();
+    }
 }

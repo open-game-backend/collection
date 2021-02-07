@@ -7,8 +7,7 @@ import de.opengamebackend.collection.model.entities.ItemTag;
 import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
+import de.opengamebackend.collection.model.requests.*;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponseItem;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
@@ -59,6 +58,82 @@ public class CollectionService {
         }
 
         return new GetCollectionResponse(collection);
+    }
+
+    public void addCollectionItems(String playerId, AddCollectionItemsRequest request) throws ApiException {
+        if (Strings.isNullOrEmpty(playerId)) {
+            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+        }
+
+        if (Strings.isNullOrEmpty(request.getItemDefinitionId())) {
+            throw new ApiException(ApiErrors.MISSING_ITEM_DEFINITION_CODE, ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+        }
+
+        ItemDefinition itemDefinition = itemDefinitionRepository.findById(request.getItemDefinitionId()).orElse(null);
+
+        if (itemDefinition == null) {
+            throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+        }
+
+        if (request.getItemCount() <= 0) {
+            throw new ApiException(ApiErrors.INVALID_ITEM_COUNT_CODE, ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
+        }
+
+        CollectionItem collectionItem = new CollectionItem();
+        collectionItem.setPlayerId(playerId);
+        collectionItem.setItemDefinition(itemDefinition);
+        collectionItem.setCount(request.getItemCount());
+
+        collectionItemRepository.save(collectionItem);
+    }
+
+    public void putCollectionItems(String playerId, String itemDefinitionId, PutCollectionItemsRequest request)
+            throws ApiException {
+        if (Strings.isNullOrEmpty(playerId)) {
+            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+        }
+
+        if (Strings.isNullOrEmpty(itemDefinitionId)) {
+            throw new ApiException(ApiErrors.MISSING_ITEM_DEFINITION_CODE, ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+        }
+
+        ItemDefinition itemDefinition = itemDefinitionRepository.findById(itemDefinitionId).orElse(null);
+
+        if (itemDefinition == null) {
+            throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+        }
+
+        if (request.getItemCount() <= 0) {
+            throw new ApiException(ApiErrors.INVALID_ITEM_COUNT_CODE, ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
+        }
+
+        CollectionItem collectionItem =
+                collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition).orElse(null);
+
+        if (collectionItem == null) {
+            throw new ApiException(ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_CODE, ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE);
+        }
+
+        collectionItem.setCount(request.getItemCount());
+        collectionItemRepository.save(collectionItem);
+    }
+
+    public void removeCollectionItems(String playerId, String itemDefinitionId) throws ApiException {
+        if (Strings.isNullOrEmpty(playerId)) {
+            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+        }
+
+        if (Strings.isNullOrEmpty(itemDefinitionId)) {
+            throw new ApiException(ApiErrors.MISSING_ITEM_DEFINITION_CODE, ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+        }
+
+        ItemDefinition itemDefinition = itemDefinitionRepository.findById(itemDefinitionId).orElse(null);
+
+        if (itemDefinition == null) {
+            throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+        }
+
+        collectionItemRepository.deleteByPlayerIdAndItemDefinition(playerId, itemDefinition);
     }
 
     public GetItemDefinitionsResponse getItemDefinitions() {
