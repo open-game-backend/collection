@@ -323,28 +323,6 @@ public class CollectionServiceTests {
     }
 
     @Test
-    public void givenItemTags_whenGetItemDefinitions_thenReturnTags() {
-        // GIVEN
-        ItemTag itemTag1 = mock(ItemTag.class);
-        when(itemTag1.getTag()).thenReturn("testItemTag1");
-
-        ItemTag itemTag2 = mock(ItemTag.class);
-        when(itemTag2.getTag()).thenReturn("testItemTag2");
-
-        when(itemTagRepository.findAll()).thenReturn(Lists.list(itemTag1, itemTag2));
-
-        // WHEN
-        GetItemDefinitionsResponse response = collectionService.getItemDefinitions();
-
-        // THEN
-        assertThat(response).isNotNull();
-        assertThat(response.getItemTags()).isNotNull();
-        assertThat(response.getItemTags()).hasSize(2);
-        assertThat(response.getItemTags().get(0)).isEqualTo(itemTag1.getTag());
-        assertThat(response.getItemTags().get(1)).isEqualTo(itemTag2.getTag());
-    }
-
-    @Test
     public void givenItemDefinitions_whenGetItemDefinitions_thenReturnDefinitions() {
         // GIVEN
         ItemTag itemTag = mock(ItemTag.class);
@@ -379,10 +357,14 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemDefinitions_thenAddsNewTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenAddsNewTags() {
         // GIVEN
+        PutItemDefinitionsRequestItem item = mock(PutItemDefinitionsRequestItem.class);
+        when(item.getId()).thenReturn("testItem");
+        when(item.getTags()).thenReturn(Lists.list("A", "B"));
+
         PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
-        when(request.getItemTags()).thenReturn(Lists.list("A", "B"));
+        when(request.getItemDefinitions()).thenReturn(Lists.list(item));
 
         // WHEN
         collectionService.putItemDefinitions(request);
@@ -395,13 +377,13 @@ public class CollectionServiceTests {
 
         assertThat(savedTags).isNotNull();
         assertThat(savedTags).hasSize(2);
-        assertThat(savedTags.get(0).getTag()).isEqualTo(request.getItemTags().get(0));
-        assertThat(savedTags.get(1).getTag()).isEqualTo(request.getItemTags().get(1));
+        assertThat(savedTags.get(0).getTag()).isEqualTo(item.getTags().get(0));
+        assertThat(savedTags.get(1).getTag()).isEqualTo(item.getTags().get(1));
     }
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemDefinitions_thenRemovesObsoleteTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenRemovesObsoleteTags() {
         // GIVEN
         ItemTag itemTagA = mock(ItemTag.class);
         when(itemTagA.getTag()).thenReturn("A");
@@ -431,7 +413,7 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemTags_whenPutItemDefinitions_thenRetainsExistingTags() throws ApiException {
+    public void givenItemTags_whenPutItemDefinitions_thenRetainsExistingTags() {
         // GIVEN
         ItemTag itemTagA = mock(ItemTag.class);
         when(itemTagA.getTag()).thenReturn("A");
@@ -442,8 +424,12 @@ public class CollectionServiceTests {
         List<ItemTag> existingTags = Lists.list(itemTagA, itemTagB);
         when(itemTagRepository.findAll()).thenReturn(existingTags);
 
+        PutItemDefinitionsRequestItem item = mock(PutItemDefinitionsRequestItem.class);
+        when(item.getId()).thenReturn("testItem");
+        when(item.getTags()).thenReturn(Lists.list("A", "B", "C"));
+
         PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
-        when(request.getItemTags()).thenReturn(Lists.list("A", "B", "C"));
+        when(request.getItemDefinitions()).thenReturn(Lists.list(item));
 
         // WHEN
         collectionService.putItemDefinitions(request);
@@ -463,25 +449,8 @@ public class CollectionServiceTests {
     }
 
     @Test
-    public void givenUnknownItemTag_whenPutItemDefinitions_thenThrowException() {
-        // GIVEN
-        String itemTag = "A";
-
-        PutItemDefinitionsRequestItem itemDefinition = mock(PutItemDefinitionsRequestItem.class);
-        when(itemDefinition.getTags()).thenReturn(Lists.list(itemTag));
-
-        PutItemDefinitionsRequest request = new PutItemDefinitionsRequest();
-        request.setItemDefinitions(Lists.list(itemDefinition));
-
-        // WHEN & THEN
-        assertThatExceptionOfType(ApiException.class)
-                .isThrownBy(() -> collectionService.putItemDefinitions(request))
-                .withMessage(ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE + " - Item Definition: null - Item Tag: " + itemTag);
-    }
-
-    @Test
     @SuppressWarnings("unchecked")
-    public void givenItemDefinitions_whenPutItemDefinitions_thenAddsNewDefinitions() throws ApiException {
+    public void givenItemDefinitions_whenPutItemDefinitions_thenAddsNewDefinitions() {
         // GIVEN
         String itemTag = "A";
 
@@ -493,7 +462,6 @@ public class CollectionServiceTests {
         when(item2.getTags()).thenReturn(Lists.list(itemTag));
 
         PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
-        when(request.getItemTags()).thenReturn(Lists.list(itemTag));
         when(request.getItemDefinitions()).thenReturn(Lists.list(item1, item2));
 
         // WHEN
@@ -513,7 +481,7 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemDefinitions_whenPutItemDefinitions_thenRemovesObsoleteDefinitions() throws ApiException {
+    public void givenItemDefinitions_whenPutItemDefinitions_thenRemovesObsoleteDefinitions() {
         // GIVEN
         ItemDefinition item1 = mock(ItemDefinition.class);
         when(item1.getId()).thenReturn("Item1");
@@ -543,7 +511,7 @@ public class CollectionServiceTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void givenItemDefinitions_whenPutItemDefinitions_thenRetainsExistingDefinitions() throws ApiException {
+    public void givenItemDefinitions_whenPutItemDefinitions_thenRetainsExistingDefinitions() {
         // GIVEN
         String itemId1 = "Item1";
         String itemId2 = "Item2";

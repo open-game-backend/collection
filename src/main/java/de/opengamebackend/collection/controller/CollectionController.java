@@ -150,13 +150,9 @@ public class CollectionController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "204",
-                    description = "Definitions updated."),
-            @ApiResponse(
-                    responseCode = "400",
-                    description =
-                            "Error " + ApiErrors.UNKNOWN_ITEM_TAG_CODE + ": " + ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE)
+                    description = "Definitions updated.")
     })
-    public ResponseEntity<Void> putItemDefinitions(@RequestBody PutItemDefinitionsRequest request) throws ApiException {
+    public ResponseEntity<Void> putItemDefinitions(@RequestBody PutItemDefinitionsRequest request) {
         collectionService.putItemDefinitions(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

@@ -163,19 +163,8 @@ public class CollectionService {
         return new GetItemDefinitionsResponse(itemTags, itemDefinitions);
     }
 
-    public void putItemDefinitions(PutItemDefinitionsRequest request) throws ApiException {
-        // Check data integrity.
-        for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
-            for (String itemTag : itemDefinition.getTags()) {
-                if (!request.getItemTags().contains(itemTag)) {
-                    throw new ApiException(ApiErrors.UNKNOWN_ITEM_TAG_CODE,
-                            ApiErrors.UNKNOWN_ITEM_TAG_MESSAGE + " - Item Definition: " + itemDefinition.getId()
-                                    + " - Item Tag: " + itemTag);
-                }
-            }
-        }
-
-        // Update database.
+    public void putItemDefinitions(PutItemDefinitionsRequest request) {
+        // Prepare collections.
         HashMap<String, ItemTag> itemTags = new HashMap<>();
         HashMap<String, ItemDefinition> itemDefinitions = new HashMap<>();
 
@@ -184,6 +173,7 @@ public class CollectionService {
         ArrayList<ItemDefinition> itemDefinitionsToSave = new ArrayList<>();
         ArrayList<ItemDefinition> itemDefinitionsToDelete = new ArrayList<>();
 
+        // Query current state from database.
         for (ItemTag itemTag : itemTagRepository.findAll()) {
             itemTags.put(itemTag.getTag(), itemTag);
         }
@@ -192,17 +182,22 @@ public class CollectionService {
             itemDefinitions.put(itemDefinition.getId(), itemDefinition);
         }
 
-        for (String itemTag : request.getItemTags()) {
-            ItemTag itemTagEntity = itemTags.get(itemTag);
+        // Collect requested item tags.
+        for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
+            for (String itemTag : itemDefinition.getTags()) {
+                ItemTag itemTagEntity = itemTags.get(itemTag);
 
-            if (itemTagEntity == null) {
-                itemTagEntity = new ItemTag(itemTag);
-                itemTagsToSave.add(itemTagEntity);
-                itemTags.put(itemTag, itemTagEntity);
+                if (itemTagEntity == null) {
+                    itemTagEntity = new ItemTag(itemTag);
+                    itemTagsToSave.add(itemTagEntity);
+                    itemTags.put(itemTag, itemTagEntity);
+                }
             }
         }
 
+        // Collect requested item definitions.
         for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
+
             ItemDefinition itemDefinitionEntity = itemDefinitions.get(itemDefinition.getId());
 
             if (itemDefinitionEntity == null) {
@@ -218,13 +213,14 @@ public class CollectionService {
             itemDefinitionsToSave.add(itemDefinitionEntity);
         }
 
-        // Clean up database.
+        // Find tags to remove.
         for (Map.Entry<String, ItemTag> itemTag : itemTags.entrySet()) {
-            if (!request.getItemTags().contains(itemTag.getKey())) {
+            if (request.getItemDefinitions().stream().noneMatch(i -> i.getTags().contains(itemTag.getKey()))) {
                 itemTagsToDelete.add(itemTag.getValue());
             }
         }
 
+        // Find definitions to remove.
         for (Map.Entry<String, ItemDefinition> itemDefinition : itemDefinitions.entrySet()) {
             if (request.getItemDefinitions().stream().noneMatch(i -> i.getId().equals(itemDefinition.getKey()))) {
                 itemDefinitionsToDelete.add(itemDefinition.getValue());
