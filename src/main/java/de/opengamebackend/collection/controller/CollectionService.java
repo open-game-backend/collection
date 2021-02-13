@@ -145,12 +145,6 @@ public class CollectionService {
     }
 
     public GetItemDefinitionsResponse getItemDefinitions() {
-        List<String> itemTags = new ArrayList<>();
-
-        for (ItemTag itemTag : itemTagRepository.findAll()) {
-            itemTags.add(itemTag.getTag());
-        }
-
         List<GetItemDefinitionsResponseItem> itemDefinitions = new ArrayList<>();
 
         for (ItemDefinition itemDefinition : itemDefinitionRepository.findAll()) {
@@ -160,7 +154,7 @@ public class CollectionService {
                             .collect(Collectors.toList())));
         }
 
-        return new GetItemDefinitionsResponse(itemTags, itemDefinitions);
+        return new GetItemDefinitionsResponse(itemDefinitions);
     }
 
     public void putItemDefinitions(PutItemDefinitionsRequest request) {
