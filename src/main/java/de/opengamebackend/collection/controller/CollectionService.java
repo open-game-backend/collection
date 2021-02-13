@@ -1,17 +1,13 @@
 package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
-import de.opengamebackend.collection.model.entities.CollectionItem;
-import de.opengamebackend.collection.model.entities.ItemDefinition;
-import de.opengamebackend.collection.model.entities.ItemTag;
-import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
-import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
-import de.opengamebackend.collection.model.repositories.ItemTagRepository;
-import de.opengamebackend.collection.model.requests.*;
-import de.opengamebackend.collection.model.responses.GetCollectionResponse;
-import de.opengamebackend.collection.model.responses.GetCollectionResponseItem;
-import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
-import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponseItem;
+import de.opengamebackend.collection.model.entities.*;
+import de.opengamebackend.collection.model.repositories.*;
+import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
+import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
+import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +26,18 @@ public class CollectionService {
     private final CollectionItemRepository collectionItemRepository;
     private final ItemDefinitionRepository itemDefinitionRepository;
     private final ItemTagRepository itemTagRepository;
+    private final ItemSetRepository itemSetRepository;
+    private final ClaimedItemSetRepository claimedItemSetRepository;
 
     @Autowired
     public CollectionService(CollectionItemRepository collectionItemRepository,
-                             ItemDefinitionRepository itemDefinitionRepository, ItemTagRepository itemTagRepository) {
+                             ItemDefinitionRepository itemDefinitionRepository, ItemTagRepository itemTagRepository,
+                             ItemSetRepository itemSetRepository, ClaimedItemSetRepository claimedItemSetRepository) {
         this.collectionItemRepository = collectionItemRepository;
         this.itemDefinitionRepository = itemDefinitionRepository;
         this.itemTagRepository = itemTagRepository;
+        this.itemSetRepository = itemSetRepository;
+        this.claimedItemSetRepository = claimedItemSetRepository;
     }
 
     public GetCollectionResponse getCollection(String playerId) throws ApiException {
@@ -227,5 +228,51 @@ public class CollectionService {
 
         itemDefinitionRepository.saveAll(itemDefinitionsToSave);
         itemDefinitionRepository.deleteAll(itemDefinitionsToDelete);
+    }
+
+    public ClaimItemSetResponse claimItemSet(String playerId) throws ApiException {
+        if (Strings.isNullOrEmpty(playerId)) {
+            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+        }
+
+        // Find unclaimed item set.
+        List<ItemSet> unclaimedItemSets = itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId);
+
+        if (unclaimedItemSets == null || unclaimedItemSets.size() <= 0) {
+            return new ClaimItemSetResponse();
+        }
+
+        // Add items to collection.
+        ItemSet itemSet = unclaimedItemSets.get(0);
+
+        for (ItemSetItem itemSetItem : itemSet.getItems()) {
+            CollectionItem collectionItem = collectionItemRepository.findByPlayerIdAndItemDefinition
+                    (playerId, itemSetItem.getItemDefinition()).orElse(null);
+
+            if (collectionItem == null) {
+                collectionItem = new CollectionItem();
+                collectionItem.setPlayerId(playerId);
+                collectionItem.setItemDefinition(itemSetItem.getItemDefinition());
+            }
+
+            collectionItem.setCount(collectionItem.getCount() + itemSetItem.getCount());
+
+            collectionItemRepository.save(collectionItem);
+        }
+
+        // Save claim.
+        ClaimedItemSet claimedItemSet = new ClaimedItemSet();
+        claimedItemSet.setPlayerId(playerId);
+        claimedItemSet.setItemSet(itemSet);
+
+        claimedItemSetRepository.save(claimedItemSet);
+
+        // Send response.
+        ClaimItemSetResponse response = new ClaimItemSetResponse();
+        response.setItemSetId(itemSet.getId());
+        response.setItems(itemSet.getItems().stream()
+                .map(i -> new ClaimItemSetResponseItem(i.getItemDefinition().getId(), i.getCount()))
+                .collect(Collectors.toList()));
+        return response;
     }
 }

@@ -5,6 +5,7 @@ import de.opengamebackend.collection.model.entities.ItemDefinition;
 import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.test.HttpRequestUtils;
@@ -104,5 +105,11 @@ public class CollectionControllerIntegrationTests {
     public void whenPutItemDefinitions_thenOk() throws Exception {
         PutItemDefinitionsRequest request = new PutItemDefinitionsRequest();
         httpRequestUtils.assertPutOk(mvc, "/admin/itemdefinitions", request);
+    }
+
+    @Test
+    public void whenClaimItemSet_thenOk() throws Exception {
+        httpRequestUtils.assertPostOk(mvc, "/client/claimItemSet", null, ClaimItemSetResponse.class,
+                "testId");
     }
 }

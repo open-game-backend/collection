@@ -3,6 +3,7 @@ package de.opengamebackend.collection.controller;
 import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -155,5 +156,22 @@ public class CollectionController {
     public ResponseEntity<Void> putItemDefinitions(@RequestBody PutItemDefinitionsRequest request) {
         collectionService.putItemDefinitions(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/client/claimItemSet")
+    @Operation(summary = "Claims any active item set unclaimed by the player.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Claimed item set, if any, or response with empty itemSetId otherwise."),
+            @ApiResponse(
+                    responseCode = "400",
+                    description =
+                            "Error " + ApiErrors.MISSING_PLAYER_ID_CODE + ": " + ApiErrors.MISSING_PLAYER_ID_MESSAGE,
+                    content = { @Content })
+    })
+    public ResponseEntity<ClaimItemSetResponse> claimItemSet(@RequestHeader(HttpHeader.PLAYER_ID) String playerId) throws ApiException {
+        ClaimItemSetResponse response = collectionService.claimItemSet(playerId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

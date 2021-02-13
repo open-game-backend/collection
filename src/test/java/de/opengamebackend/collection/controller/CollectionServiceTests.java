@@ -1,15 +1,12 @@
 package de.opengamebackend.collection.controller;
 
-import de.opengamebackend.collection.model.entities.CollectionItem;
-import de.opengamebackend.collection.model.entities.ItemDefinition;
-import de.opengamebackend.collection.model.entities.ItemTag;
-import de.opengamebackend.collection.model.repositories.CollectionItemRepository;
-import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
-import de.opengamebackend.collection.model.repositories.ItemTagRepository;
+import de.opengamebackend.collection.model.entities.*;
+import de.opengamebackend.collection.model.repositories.*;
 import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
+import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
 import de.opengamebackend.net.ApiErrors;
@@ -30,6 +27,8 @@ public class CollectionServiceTests {
     private CollectionItemRepository collectionItemRepository;
     private ItemDefinitionRepository itemDefinitionRepository;
     private ItemTagRepository itemTagRepository;
+    private ItemSetRepository itemSetRepository;
+    private ClaimedItemSetRepository claimedItemSetRepository;
 
     private CollectionService collectionService;
 
@@ -38,8 +37,11 @@ public class CollectionServiceTests {
         collectionItemRepository = mock(CollectionItemRepository.class);
         itemDefinitionRepository = mock(ItemDefinitionRepository.class);
         itemTagRepository = mock(ItemTagRepository.class);
+        itemSetRepository = mock(ItemSetRepository.class);
+        claimedItemSetRepository = mock(ClaimedItemSetRepository.class);
 
-        collectionService = new CollectionService(collectionItemRepository, itemDefinitionRepository, itemTagRepository);
+        collectionService = new CollectionService(collectionItemRepository, itemDefinitionRepository, itemTagRepository,
+                itemSetRepository, claimedItemSetRepository);
     }
 
     @Test
@@ -545,5 +547,140 @@ public class CollectionServiceTests {
 
         assertThat(deletedDefinitions).isNotNull();
         assertThat(deletedDefinitions).doesNotContain(item1, item2);
+    }
+
+    @Test
+    public void givenMissingPlayerId_whenClaimItemSet_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.claimItemSet(""))
+                .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+    }
+
+    @Test
+    public void givenNoUnclaimedItemSets_whenClaimItemSet_thenReturnEmptyResponse() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+
+        when(itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId)).thenReturn(Lists.emptyList());
+
+        // WHEN
+        ClaimItemSetResponse response = collectionService.claimItemSet(playerId);
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getItemSetId()).isNull();
+    }
+
+    @Test
+    public void givenUnclaimedItemSet_whenClaimItemSet_thenAddNewItemsToCollection() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+
+        ItemSetItem itemSetItem = mock(ItemSetItem.class);
+        when(itemSetItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(itemSetItem.getCount()).thenReturn(2);
+
+        ItemSet itemSet = mock(ItemSet.class);
+        when(itemSet.getItems()).thenReturn(Lists.list(itemSetItem));
+
+        when(itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId)).thenReturn(Lists.list(itemSet));
+
+        // WHEN
+        collectionService.claimItemSet(playerId);
+
+        // THEN
+        ArgumentCaptor<CollectionItem> argumentCaptor = ArgumentCaptor.forClass(CollectionItem.class);
+        verify(collectionItemRepository).save(argumentCaptor.capture());
+
+        CollectionItem collectionItem = argumentCaptor.getValue();
+
+        assertThat(collectionItem).isNotNull();
+        assertThat(collectionItem.getPlayerId()).isEqualTo(playerId);
+        assertThat(collectionItem.getItemDefinition()).isEqualTo(itemSetItem.getItemDefinition());
+        assertThat(collectionItem.getCount()).isEqualTo(itemSetItem.getCount());
+    }
+
+    @Test
+    public void givenUnclaimedItemSet_whenClaimItemSet_thenIncreasesExistingCollectionItemCount() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        int oldCount = 2;
+        int additionalCount = 3;
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getCount()).thenReturn(oldCount);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition)).thenReturn(Optional.of(collectionItem));
+
+        ItemSetItem itemSetItem = mock(ItemSetItem.class);
+        when(itemSetItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(itemSetItem.getCount()).thenReturn(additionalCount);
+
+        ItemSet itemSet = mock(ItemSet.class);
+        when(itemSet.getItems()).thenReturn(Lists.list(itemSetItem));
+
+        when(itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId)).thenReturn(Lists.list(itemSet));
+
+        // WHEN
+        collectionService.claimItemSet(playerId);
+
+        // THEN
+        verify(collectionItem).setCount(oldCount + additionalCount);
+        verify(collectionItemRepository).save(collectionItem);
+    }
+
+    @Test
+    public void givenUnclaimedItemSet_whenClaimItemSet_thenSavesClaim() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        ItemSet itemSet = mock(ItemSet.class);
+
+        when(itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId)).thenReturn(Lists.list(itemSet));
+
+        // WHEN
+        collectionService.claimItemSet(playerId);
+
+        // THEN
+        ArgumentCaptor<ClaimedItemSet> argumentCaptor = ArgumentCaptor.forClass(ClaimedItemSet.class);
+        verify(claimedItemSetRepository).save(argumentCaptor.capture());
+
+        ClaimedItemSet claimedItemSet = argumentCaptor.getValue();
+
+        assertThat(claimedItemSet).isNotNull();
+        assertThat(claimedItemSet.getItemSet()).isEqualTo(itemSet);
+        assertThat(claimedItemSet.getPlayerId()).isEqualTo(playerId);
+    }
+
+    @Test
+    public void givenUnclaimedItemSet_whenClaimItemSet_thenReturnsClaimedItems() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getId()).thenReturn("testItem");
+
+        ItemSetItem itemSetItem = mock(ItemSetItem.class);
+        when(itemSetItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(itemSetItem.getCount()).thenReturn(2);
+
+        ItemSet itemSet = mock(ItemSet.class);
+        when(itemSet.getId()).thenReturn("testItemSet");
+        when(itemSet.getItems()).thenReturn(Lists.list(itemSetItem));
+
+        when(itemSetRepository.findUnclaimedItemSetsByPlayerId(playerId)).thenReturn(Lists.list(itemSet));
+
+        // WHEN
+        ClaimItemSetResponse response = collectionService.claimItemSet(playerId);
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getItemSetId()).isEqualTo(itemSet.getId());
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getId()).isEqualTo(itemSetItem.getItemDefinition().getId());
+        assertThat(response.getItems().get(0).getCount()).isEqualTo(itemSetItem.getCount());
     }
 }
