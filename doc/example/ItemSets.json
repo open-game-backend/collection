@@ -1,0 +1,17 @@
+{
+  "itemSets": [
+    {
+      "id": "InitialItems",
+      "items": [
+        {
+          "itemDefinitionId": "FancyHat",
+          "count": 2
+        },
+        {
+          "itemDefinitionId": "MightySword",
+          "count": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "itemDefinitions": [
+    {
+      "id": "FancyHat",
+      "tags": [
+        "Head"
+      ]
+    },
+    {
+      "id": "MightySword",
+      "tags": [
+        "Epic",
+        "Main Hand"
+      ]
+    },
+    {
+      "id": "RuggedBoots",
+      "tags": [
+        "Feet"
+      ]
+    },
+    {
+      "id": "ShinyArmor",
+      "tags": [
+        "Chest"
+      ]
+    }
+  ]
+}
