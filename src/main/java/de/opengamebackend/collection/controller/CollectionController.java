@@ -4,10 +4,7 @@ import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.requests.PutItemSetsRequest;
-import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
-import de.opengamebackend.collection.model.responses.GetCollectionResponse;
-import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
-import de.opengamebackend.collection.model.responses.GetItemSetsResponse;
+import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import de.opengamebackend.net.HttpHeader;
@@ -189,6 +186,21 @@ public class CollectionController {
     public ResponseEntity<Void> putItemSets(@RequestBody PutItemSetsRequest request) throws ApiException {
         collectionService.putItemSets(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/admin/claimeditemsets/{playerId}")
+    @Operation(summary = "Gets all item sets that have already been claimed by the player.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Item sets fetched.",
+                    content = { @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GetClaimedItemSetsResponse.class)) })
+    })
+    public ResponseEntity<GetClaimedItemSetsResponse> getClaimedItemSets(@PathVariable String playerId) {
+        GetClaimedItemSetsResponse response = collectionService.getClaimedItemSets(playerId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/client/claimitemset")

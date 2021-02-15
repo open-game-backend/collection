@@ -6,10 +6,7 @@ import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.requests.PutItemSetsRequest;
-import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
-import de.opengamebackend.collection.model.responses.GetCollectionResponse;
-import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
-import de.opengamebackend.collection.model.responses.GetItemSetsResponse;
+import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.test.HttpRequestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,6 +115,11 @@ public class CollectionControllerIntegrationTests {
     public void whenPutItemSets_thenOk() throws Exception {
         PutItemSetsRequest request = new PutItemSetsRequest();
         httpRequestUtils.assertPutOk(mvc, "/admin/itemsets", request);
+    }
+
+    @Test
+    public void whenGetClaimedItemSets_thenOk() throws Exception {
+        httpRequestUtils.assertGetOk(mvc, "/admin/claimeditemsets/testPlayer", GetClaimedItemSetsResponse.class);
     }
 
     @Test

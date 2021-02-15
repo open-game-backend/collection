@@ -3,10 +3,7 @@ package de.opengamebackend.collection.controller;
 import de.opengamebackend.collection.model.entities.*;
 import de.opengamebackend.collection.model.repositories.*;
 import de.opengamebackend.collection.model.requests.*;
-import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
-import de.opengamebackend.collection.model.responses.GetCollectionResponse;
-import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
-import de.opengamebackend.collection.model.responses.GetItemSetsResponse;
+import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.assertj.core.util.Lists;
@@ -587,7 +584,7 @@ public class CollectionServiceTests {
     }
 
     @Test
-    public void givenUnknownItemDefinition_whenPutItemSets_thenThrowException() throws ApiException {
+    public void givenUnknownItemDefinition_whenPutItemSets_thenThrowException() {
         // GIVEN
         PutItemSetsRequestItem item = mock(PutItemSetsRequestItem.class);
         when(item.getItemDefinitionId()).thenReturn("testItem");
@@ -699,6 +696,29 @@ public class CollectionServiceTests {
 
         assertThat(deletedItemSets).isNotNull();
         assertThat(deletedItemSets).doesNotContain(itemSetEntity);
+    }
+
+    @Test
+    public void givenClaimedItemSets_whenGetClaimedItemSets_thenReturnItemSets() {
+        // GIVEN
+        String playerId = "testPlayer";
+
+        ItemSet itemSet = mock(ItemSet.class);
+        when(itemSet.getId()).thenReturn("testItemSet");
+
+        ClaimedItemSet claimedItemSet = mock(ClaimedItemSet.class);
+        when(claimedItemSet.getItemSet()).thenReturn(itemSet);
+
+        when(claimedItemSetRepository.findByPlayerId(playerId)).thenReturn(Lists.list(claimedItemSet));
+
+        // WHEN
+        GetClaimedItemSetsResponse response = collectionService.getClaimedItemSets(playerId);
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getClaimedItemSets()).isNotNull();
+        assertThat(response.getClaimedItemSets()).hasSize(1);
+        assertThat(response.getClaimedItemSets().get(0)).isEqualTo(itemSet.getId());
     }
 
     @Test

@@ -297,6 +297,14 @@ public class CollectionService {
         itemSetRepository.deleteAll(itemSetsToDelete);
     }
 
+    public GetClaimedItemSetsResponse getClaimedItemSets(String playerId) {
+        List<ClaimedItemSet> claimedItemSets = claimedItemSetRepository.findByPlayerId(playerId);
+
+        return new GetClaimedItemSetsResponse(claimedItemSets.stream()
+                .map(s -> s.getItemSet().getId())
+                .collect(Collectors.toList()));
+    }
+
     public ClaimItemSetResponse claimItemSet(String playerId) throws ApiException {
         if (Strings.isNullOrEmpty(playerId)) {
             throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
