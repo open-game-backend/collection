@@ -276,10 +276,12 @@ public class CollectionService {
                     throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
                 }
 
-                itemEntities.add(new ItemSetItem(itemDefinition, item.getCount()));
+                itemEntities.add(new ItemSetItem(itemSetEntity, itemDefinition, item.getCount()));
             }
 
-            itemSetEntity.setItems(itemEntities);
+            itemSetEntity.getItems().clear();
+            itemSetEntity.getItems().addAll(itemEntities);
+
             itemSetsToSave.add(itemSetEntity);
         }
 

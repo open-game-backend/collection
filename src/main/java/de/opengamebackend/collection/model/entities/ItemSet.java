@@ -10,7 +10,7 @@ public class ItemSet {
     @Id
     private String id;
 
-    @OneToMany
+    @OneToMany(mappedBy = "itemSet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemSetItem> items;
 
     public ItemSet() {

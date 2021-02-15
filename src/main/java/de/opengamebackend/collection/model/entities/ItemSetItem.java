@@ -9,6 +9,9 @@ public class ItemSetItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @ManyToOne
+    private ItemSet itemSet;
+
     @ManyToOne(optional = false)
     private ItemDefinition itemDefinition;
 
@@ -17,7 +20,8 @@ public class ItemSetItem {
     public ItemSetItem() {
     }
 
-    public ItemSetItem(ItemDefinition itemDefinition, int count) {
+    public ItemSetItem(ItemSet itemSet, ItemDefinition itemDefinition, int count) {
+        this.itemSet = itemSet;
         this.itemDefinition = itemDefinition;
         this.count = count;
     }
@@ -28,6 +32,14 @@ public class ItemSetItem {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public ItemSet getItemSet() {
+        return itemSet;
+    }
+
+    public void setItemSet(ItemSet itemSet) {
+        this.itemSet = itemSet;
     }
 
     public ItemDefinition getItemDefinition() {
