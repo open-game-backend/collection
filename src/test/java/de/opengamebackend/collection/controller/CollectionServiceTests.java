@@ -2,13 +2,11 @@ package de.opengamebackend.collection.controller;
 
 import de.opengamebackend.collection.model.entities.*;
 import de.opengamebackend.collection.model.repositories.*;
-import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
-import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
+import de.opengamebackend.collection.model.requests.*;
 import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
+import de.opengamebackend.collection.model.responses.GetItemSetsResponse;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.assertj.core.util.Lists;
@@ -547,6 +545,160 @@ public class CollectionServiceTests {
 
         assertThat(deletedDefinitions).isNotNull();
         assertThat(deletedDefinitions).doesNotContain(item1, item2);
+    }
+
+    @Test
+    public void givenItemSets_whenGetItemSets_thenReturnItemSets() {
+        // GIVEN
+        ItemDefinition itemDefinition1 = mock(ItemDefinition.class);
+        when(itemDefinition1.getId()).thenReturn("testItem1");
+
+        ItemDefinition itemDefinition2 = mock(ItemDefinition.class);
+        when(itemDefinition2.getId()).thenReturn("testItem2");
+
+        ItemSetItem itemSetItem1 = mock(ItemSetItem.class);
+        when(itemSetItem1.getItemDefinition()).thenReturn(itemDefinition1);
+        when(itemSetItem1.getCount()).thenReturn(2);
+
+        ItemSetItem itemSetItem2 = mock(ItemSetItem.class);
+        when(itemSetItem2.getItemDefinition()).thenReturn(itemDefinition2);
+        when(itemSetItem2.getCount()).thenReturn(3);
+
+        ItemSet itemSet = mock(ItemSet.class);
+        when(itemSet.getId()).thenReturn("testItemSet");
+        when(itemSet.getItems()).thenReturn(Lists.list(itemSetItem1, itemSetItem2));
+
+        when(itemSetRepository.findAll()).thenReturn(Lists.list(itemSet));
+
+        // WHEN
+        GetItemSetsResponse response = collectionService.getItemSets();
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getItemSets()).isNotNull();
+        assertThat(response.getItemSets()).hasSize(1);
+        assertThat(response.getItemSets().get(0).getId()).isEqualTo(itemSet.getId());
+        assertThat(response.getItemSets().get(0).getItems()).isNotNull();
+        assertThat(response.getItemSets().get(0).getItems()).hasSize(2);
+        assertThat(response.getItemSets().get(0).getItems().get(0).getItemDefinitionId()).isEqualTo(itemDefinition1.getId());
+        assertThat(response.getItemSets().get(0).getItems().get(0).getCount()).isEqualTo(itemSetItem1.getCount());
+        assertThat(response.getItemSets().get(0).getItems().get(1).getItemDefinitionId()).isEqualTo(itemDefinition2.getId());
+        assertThat(response.getItemSets().get(0).getItems().get(1).getCount()).isEqualTo(itemSetItem2.getCount());
+    }
+
+    @Test
+    public void givenUnknownItemDefinition_whenPutItemSets_thenThrowException() throws ApiException {
+        // GIVEN
+        PutItemSetsRequestItem item = mock(PutItemSetsRequestItem.class);
+        when(item.getItemDefinitionId()).thenReturn("testItem");
+
+        PutItemSetsRequestItemSet itemSet = mock(PutItemSetsRequestItemSet.class);
+        when(itemSet.getItems()).thenReturn(Lists.list(item));
+
+        PutItemSetsRequest request = mock(PutItemSetsRequest.class);
+        when(request.getItemSets()).thenReturn(Lists.newArrayList(itemSet));
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.putItemSets(request))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemSets_whenPutItemSets_thenAddsNewSets() throws ApiException {
+        // GIVEN
+        String itemDefinitionId = "testItem";
+
+        PutItemSetsRequestItem item = mock(PutItemSetsRequestItem.class);
+        when(item.getItemDefinitionId()).thenReturn(itemDefinitionId);
+        when(item.getCount()).thenReturn(2);
+
+        PutItemSetsRequestItemSet itemSet = mock(PutItemSetsRequestItemSet.class);
+        when(itemSet.getId()).thenReturn("testItemSet");
+        when(itemSet.getItems()).thenReturn(Lists.list(item));
+
+        PutItemSetsRequest request = mock(PutItemSetsRequest.class);
+        when(request.getItemSets()).thenReturn(Lists.newArrayList(itemSet));
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getId()).thenReturn(itemDefinitionId);
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(itemDefinition));
+
+        // WHEN
+        collectionService.putItemSets(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemSet>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemSetRepository).saveAll(argument.capture());
+
+        List<ItemSet> savedItemSets = argument.getValue();
+
+        assertThat(savedItemSets).isNotNull();
+        assertThat(savedItemSets).hasSize(1);
+        assertThat(savedItemSets.get(0).getId()).isEqualTo(itemSet.getId());
+        assertThat(savedItemSets.get(0).getItems()).isNotNull();
+        assertThat(savedItemSets.get(0).getItems()).hasSize(1);
+        assertThat(savedItemSets.get(0).getItems().get(0).getItemDefinition()).isEqualTo(itemDefinition);
+        assertThat(savedItemSets.get(0).getItems().get(0).getCount()).isEqualTo(item.getCount());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemSets_whenPutItemSets_thenRemovesObsoleteSets() throws ApiException {
+        // GIVEN
+        ItemSet itemSet1 = mock(ItemSet.class);
+        when(itemSet1.getId()).thenReturn("testItemSet1");
+
+        ItemSet itemSet2 = mock(ItemSet.class);
+        when(itemSet2.getId()).thenReturn("testItemSet2");
+
+        List<ItemSet> existingItemSets = Lists.list(itemSet1, itemSet2);
+        when(itemSetRepository.findAll()).thenReturn(existingItemSets);
+
+        PutItemSetsRequest request = mock(PutItemSetsRequest.class);
+
+        // WHEN
+        collectionService.putItemSets(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemSet>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemSetRepository).deleteAll(argument.capture());
+
+        List<ItemSet> deletedItemSets = argument.getValue();
+
+        assertThat(deletedItemSets).isNotNull();
+        assertThat(deletedItemSets).hasSize(2);
+        assertThat(deletedItemSets.get(0)).isEqualTo(itemSet1);
+        assertThat(deletedItemSets.get(1)).isEqualTo(itemSet2);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void givenItemSets_whenPutItemSets_thenRetainsExistingSets() throws ApiException {
+        // GIVEN
+        String itemSetId = "testItemSet";
+
+        ItemSet itemSetEntity = mock(ItemSet.class);
+        when(itemSetEntity.getId()).thenReturn(itemSetId);
+        when(itemSetRepository.findAll()).thenReturn(Lists.list(itemSetEntity));
+
+        PutItemSetsRequestItemSet itemSet = mock(PutItemSetsRequestItemSet.class);
+        when(itemSet.getId()).thenReturn(itemSetId);
+
+        PutItemSetsRequest request = mock(PutItemSetsRequest.class);
+        when(request.getItemSets()).thenReturn(Lists.newArrayList(itemSet));
+
+        // WHEN
+        collectionService.putItemSets(request);
+
+        // THEN
+        ArgumentCaptor<List<ItemSet>> argument = ArgumentCaptor.forClass(List.class);
+        verify(itemSetRepository).deleteAll(argument.capture());
+        List<ItemSet> deletedItemSets = argument.getValue();
+
+        assertThat(deletedItemSets).isNotNull();
+        assertThat(deletedItemSets).doesNotContain(itemSetEntity);
     }
 
     @Test

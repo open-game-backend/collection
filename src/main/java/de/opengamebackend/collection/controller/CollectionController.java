@@ -3,9 +3,11 @@ package de.opengamebackend.collection.controller;
 import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
+import de.opengamebackend.collection.model.requests.PutItemSetsRequest;
 import de.opengamebackend.collection.model.responses.ClaimItemSetResponse;
 import de.opengamebackend.collection.model.responses.GetCollectionResponse;
 import de.opengamebackend.collection.model.responses.GetItemDefinitionsResponse;
+import de.opengamebackend.collection.model.responses.GetItemSetsResponse;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import de.opengamebackend.net.HttpHeader;
@@ -158,7 +160,38 @@ public class CollectionController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("/client/claimItemSet")
+    @GetMapping("/admin/itemsets")
+    @Operation(summary = "Gets the ids and items of all item sets.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Item sets fetched.",
+                    content = { @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GetItemSetsResponse.class)) })
+    })
+    public ResponseEntity<GetItemSetsResponse> getItemSets() {
+        GetItemSetsResponse response = collectionService.getItemSets();
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PutMapping("/admin/itemsets")
+    @Operation(summary = "Sets the ids and items of all item sets.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Item sets updated."),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Error " + ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE + ": " + ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE,
+                    content = { @Content })
+    })
+    public ResponseEntity<Void> putItemSets(@RequestBody PutItemSetsRequest request) throws ApiException {
+        collectionService.putItemSets(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/client/claimitemset")
     @Operation(summary = "Claims any active item set unclaimed by the player.")
     @ApiResponses(value = {
             @ApiResponse(

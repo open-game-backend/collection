@@ -14,6 +14,14 @@ public class ItemSetItem {
 
     private int count;
 
+    public ItemSetItem() {
+    }
+
+    public ItemSetItem(ItemDefinition itemDefinition, int count) {
+        this.itemDefinition = itemDefinition;
+        this.count = count;
+    }
+
     public long getId() {
         return id;
     }

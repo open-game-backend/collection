@@ -3,10 +3,7 @@ package de.opengamebackend.collection.controller;
 import com.google.common.base.Strings;
 import de.opengamebackend.collection.model.entities.*;
 import de.opengamebackend.collection.model.repositories.*;
-import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
-import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
-import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequestItem;
+import de.opengamebackend.collection.model.requests.*;
 import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
@@ -228,6 +225,74 @@ public class CollectionService {
 
         itemDefinitionRepository.saveAll(itemDefinitionsToSave);
         itemDefinitionRepository.deleteAll(itemDefinitionsToDelete);
+    }
+
+    public GetItemSetsResponse getItemSets() {
+        ArrayList<GetItemSetsResponseItemSet> itemSets = new ArrayList<>();
+
+        for (ItemSet itemSet : itemSetRepository.findAll()) {
+            itemSets.add(new GetItemSetsResponseItemSet(itemSet.getId(),
+                    itemSet.getItems().stream()
+                            .map(i -> new GetItemSetsResponseItem(i.getItemDefinition().getId(), i.getCount()))
+                            .collect(Collectors.toList())));
+        }
+
+        return new GetItemSetsResponse(itemSets);
+    }
+
+    public void putItemSets(PutItemSetsRequest request) throws ApiException {
+        // Prepare collections.
+        HashMap<String, ItemSet> itemSets = new HashMap<>();
+        HashMap<String, ItemDefinition> itemDefinitions = new HashMap<>();
+
+        ArrayList<ItemSet> itemSetsToSave = new ArrayList<>();
+        ArrayList<ItemSet> itemSetsToDelete = new ArrayList<>();
+
+        // Query current state from database.
+        for (ItemSet itemSet : itemSetRepository.findAll()) {
+            itemSets.put(itemSet.getId(), itemSet);
+        }
+
+        for (ItemDefinition itemDefinition : itemDefinitionRepository.findAll()) {
+            itemDefinitions.put(itemDefinition.getId(), itemDefinition);
+        }
+
+        // Collect requested item sets.
+        for (PutItemSetsRequestItemSet itemSet : request.getItemSets()) {
+            ItemSet itemSetEntity = itemSets.get(itemSet.getId());
+
+            if (itemSetEntity == null) {
+                itemSetEntity = new ItemSet();
+                itemSetEntity.setId(itemSet.getId());
+                itemSets.put(itemSet.getId(), itemSetEntity);
+            }
+
+            ArrayList<ItemSetItem> itemEntities = new ArrayList<>();
+
+            for (PutItemSetsRequestItem item : itemSet.getItems()) {
+                ItemDefinition itemDefinition = itemDefinitions.get(item.getItemDefinitionId());
+
+                if (itemDefinition == null) {
+                    throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+                }
+
+                itemEntities.add(new ItemSetItem(itemDefinition, item.getCount()));
+            }
+
+            itemSetEntity.setItems(itemEntities);
+            itemSetsToSave.add(itemSetEntity);
+        }
+
+        // Find definitions to remove.
+        for (Map.Entry<String, ItemSet> itemSet : itemSets.entrySet()) {
+            if (request.getItemSets().stream().noneMatch(i -> i.getId().equals(itemSet.getKey()))) {
+                itemSetsToDelete.add(itemSet.getValue());
+            }
+        }
+
+        // Apply changes.
+        itemSetRepository.saveAll(itemSetsToSave);
+        itemSetRepository.deleteAll(itemSetsToDelete);
     }
 
     public ClaimItemSetResponse claimItemSet(String playerId) throws ApiException {
