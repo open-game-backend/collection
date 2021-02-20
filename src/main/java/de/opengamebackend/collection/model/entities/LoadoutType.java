@@ -1,6 +1,7 @@
 package de.opengamebackend.collection.model.entities;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -11,6 +12,10 @@ public class LoadoutType {
 
     @OneToMany(mappedBy = "type", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LoadoutRule> rules;
+
+    public LoadoutType() {
+        rules = new ArrayList<>();
+    }
 
     public String getId() {
         return id;

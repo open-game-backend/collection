@@ -3,7 +3,9 @@ package de.opengamebackend.collection.controller;
 import de.opengamebackend.collection.model.entities.Loadout;
 import de.opengamebackend.collection.model.entities.LoadoutType;
 import de.opengamebackend.collection.model.requests.LoadoutRequest;
+import de.opengamebackend.collection.model.requests.PutLoadoutTypesRequest;
 import de.opengamebackend.collection.model.responses.AddLoadoutResponse;
+import de.opengamebackend.collection.model.responses.GetLoadoutTypesResponse;
 import de.opengamebackend.collection.model.responses.GetLoadoutsResponse;
 import de.opengamebackend.test.HttpRequestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,5 +85,16 @@ public class LoadoutControllerIntegrationTests {
         entityManager.persistAndFlush(loadout);
 
         httpRequestUtils.assertDeleteOk(mvc, "/client/loadouts/" + loadout.getId(), playerId);
+    }
+
+    @Test
+    public void whenGetLoadoutTypes_thenOk() throws Exception {
+        httpRequestUtils.assertGetOk(mvc, "/admin/loadouttypes", GetLoadoutTypesResponse.class);
+    }
+
+    @Test
+    public void whenPutLoadoutTypes_thenOk() throws Exception {
+        PutLoadoutTypesRequest request = new PutLoadoutTypesRequest();
+        httpRequestUtils.assertPutOk(mvc, "/admin/loadouttypes", request);
     }
 }

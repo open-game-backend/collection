@@ -1,19 +1,13 @@
 package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
-import de.opengamebackend.collection.model.entities.ItemDefinition;
-import de.opengamebackend.collection.model.entities.Loadout;
-import de.opengamebackend.collection.model.entities.LoadoutItem;
-import de.opengamebackend.collection.model.entities.LoadoutType;
+import de.opengamebackend.collection.model.entities.*;
 import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
+import de.opengamebackend.collection.model.repositories.ItemTagRepository;
 import de.opengamebackend.collection.model.repositories.LoadoutRepository;
 import de.opengamebackend.collection.model.repositories.LoadoutTypeRepository;
-import de.opengamebackend.collection.model.requests.LoadoutRequest;
-import de.opengamebackend.collection.model.requests.LoadoutRequestItem;
-import de.opengamebackend.collection.model.responses.AddLoadoutResponse;
-import de.opengamebackend.collection.model.responses.GetLoadoutsResponseLoadout;
-import de.opengamebackend.collection.model.responses.GetLoadoutsResponse;
-import de.opengamebackend.collection.model.responses.GetLoadoutsResponseLoadoutItem;
+import de.opengamebackend.collection.model.requests.*;
+import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,13 +22,15 @@ import java.util.List;
 public class LoadoutService {
     private final LoadoutRepository loadoutRepository;
     private final LoadoutTypeRepository loadoutTypeRepository;
+    private final ItemTagRepository itemTagRepository;
     private final ItemDefinitionRepository itemDefinitionRepository;
 
     @Autowired
     public LoadoutService(LoadoutRepository loadoutRepository, LoadoutTypeRepository loadoutTypeRepository,
-                          ItemDefinitionRepository itemDefinitionRepository) {
+                          ItemTagRepository itemTagRepository, ItemDefinitionRepository itemDefinitionRepository) {
         this.loadoutRepository = loadoutRepository;
         this.loadoutTypeRepository = loadoutTypeRepository;
+        this.itemTagRepository = itemTagRepository;
         this.itemDefinitionRepository = itemDefinitionRepository;
     }
 
@@ -123,6 +119,63 @@ public class LoadoutService {
         }
 
         loadoutRepository.delete(loadout);
+    }
+
+    public GetLoadoutTypesResponse getLoadoutTypes() {
+        GetLoadoutTypesResponse response = new GetLoadoutTypesResponse();
+
+        for (LoadoutType loadoutType : loadoutTypeRepository.findAll()) {
+            GetLoadoutTypesResponseType responseType = new GetLoadoutTypesResponseType();
+            responseType.setId(loadoutType.getId());
+
+            for (LoadoutRule loadoutRule : loadoutType.getRules()) {
+                GetLoadoutTypesResponseTypeRule responseRule = new GetLoadoutTypesResponseTypeRule();
+                responseRule.setItemTag(loadoutRule.getItemTag().getTag());
+                responseRule.setMinTotal(loadoutRule.getMinTotal());
+                responseRule.setMaxTotal(loadoutRule.getMaxTotal());
+                responseRule.setMaxCopies(loadoutRule.getMaxCopies());
+
+                responseType.getRules().add(responseRule);
+            }
+
+            response.getLoadoutTypes().add(responseType);
+        }
+
+        return response;
+    }
+
+    public void putLoadoutTypes(PutLoadoutTypesRequest request) throws ApiException {
+        // Build entities to save.
+        ArrayList<LoadoutType> loadoutTypes = new ArrayList<>();
+
+        for (PutLoadoutTypesRequestType loadoutType : request.getLoadoutTypes()) {
+            LoadoutType loadoutTypeEntity = new LoadoutType();
+            loadoutTypeEntity.setId(loadoutType.getId());
+
+            for (PutLoadoutTypesRequestTypeRule loadoutRule : loadoutType.getRules()) {
+                ItemTag itemTag = itemTagRepository.findById(loadoutRule.getItemTag()).orElse(null);
+
+                if (itemTag == null) {
+                    throw new ApiException(ApiErrors.UNKNOWN_ITEMTAG_CODE,
+                            ApiErrors.UNKNOWN_ITEMTAG_MESSAGE + " - " + loadoutRule.getItemTag());
+                }
+
+                LoadoutRule loadoutRuleEntity = new LoadoutRule();
+                loadoutRuleEntity.setType(loadoutTypeEntity);
+                loadoutRuleEntity.setItemTag(itemTag);
+                loadoutRuleEntity.setMinTotal(loadoutRule.getMinTotal());
+                loadoutRuleEntity.setMaxTotal(loadoutRule.getMaxTotal());
+                loadoutRuleEntity.setMaxCopies(loadoutRule.getMaxCopies());
+
+                loadoutTypeEntity.getRules().add(loadoutRuleEntity);
+            }
+
+            loadoutTypes.add(loadoutTypeEntity);
+        }
+
+        // Save entities.
+        loadoutTypeRepository.deleteAll();
+        loadoutTypeRepository.saveAll(loadoutTypes);
     }
 
     private void mapLoadout(String playerId, LoadoutType loadoutType, LoadoutRequest request, Loadout loadout)
