@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class CollectionController {
-    private CollectionService collectionService;
+    private final CollectionService collectionService;
 
     public CollectionController(CollectionService collectionService) {
         this.collectionService = collectionService;

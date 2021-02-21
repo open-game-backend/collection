@@ -103,7 +103,7 @@ public class CollectionServiceTests {
     @Test
     public void givenMissingItemDefinitionId_whenAddCollectionItems_thenThrowException() {
         // GIVEN
-        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
+        AddCollectionItemsRequest request = mock(AddCollectionItemsRequest.class);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -114,8 +114,8 @@ public class CollectionServiceTests {
     @Test
     public void givenUnknownItemDefinition_whenAddCollectionItems_thenThrowException() {
         // GIVEN
-        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
-        request.setItemDefinitionId("testItemDefinition");
+        AddCollectionItemsRequest request = mock(AddCollectionItemsRequest.class);
+        when(request.getItemDefinitionId()).thenReturn("testItemDefinition");
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -131,8 +131,8 @@ public class CollectionServiceTests {
         ItemDefinition itemDefinition = mock(ItemDefinition.class);
         when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
 
-        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
-        request.setItemDefinitionId(itemDefinitionId);
+        AddCollectionItemsRequest request = mock(AddCollectionItemsRequest.class);
+        when(request.getItemDefinitionId()).thenReturn(itemDefinitionId);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -148,9 +148,9 @@ public class CollectionServiceTests {
         ItemDefinition itemDefinition = mock(ItemDefinition.class);
         when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
 
-        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
-        request.setItemDefinitionId(itemDefinitionId);
-        request.setItemCount(2);
+        AddCollectionItemsRequest request = mock(AddCollectionItemsRequest.class);
+        when(request.getItemDefinitionId()).thenReturn(itemDefinitionId);
+        when(request.getItemCount()).thenReturn(2);
 
         String playerId = "testPlayer";
 
@@ -183,9 +183,9 @@ public class CollectionServiceTests {
         when(collectionItem.getCount()).thenReturn(oldCount);
         when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition)).thenReturn(Optional.of(collectionItem));
 
-        AddCollectionItemsRequest request = new AddCollectionItemsRequest();
-        request.setItemDefinitionId(itemDefinitionId);
-        request.setItemCount(3);
+        AddCollectionItemsRequest request = mock(AddCollectionItemsRequest.class);
+        when(request.getItemDefinitionId()).thenReturn(itemDefinitionId);
+        when(request.getItemCount()).thenReturn(3);
 
         // WHEN
         collectionService.addCollectionItems(playerId, request);
@@ -214,7 +214,7 @@ public class CollectionServiceTests {
     @Test
     public void givenUnknownItemDefinition_whenPutCollectionItems_thenThrowException() {
         // GIVEN
-        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+        PutCollectionItemsRequest request = mock(PutCollectionItemsRequest.class);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -230,7 +230,7 @@ public class CollectionServiceTests {
         ItemDefinition itemDefinition = mock(ItemDefinition.class);
         when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
 
-        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
+        PutCollectionItemsRequest request = mock(PutCollectionItemsRequest.class);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -246,8 +246,8 @@ public class CollectionServiceTests {
         ItemDefinition itemDefinition = mock(ItemDefinition.class);
         when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
 
-        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
-        request.setItemCount(2);
+        PutCollectionItemsRequest request = mock(PutCollectionItemsRequest.class);
+        when(request.getItemCount()).thenReturn(2);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
@@ -268,8 +268,8 @@ public class CollectionServiceTests {
         when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
                 .thenReturn(Optional.of(collectionItem));
 
-        PutCollectionItemsRequest request = new PutCollectionItemsRequest();
-        request.setItemCount(2);
+        PutCollectionItemsRequest request = mock(PutCollectionItemsRequest.class);
+        when(request.getItemCount()).thenReturn(2);
 
         // WHEN
         collectionService.putCollectionItems(playerId, itemDefinitionId, request);
