@@ -2,11 +2,13 @@ package de.opengamebackend.collection.controller;
 
 import com.google.common.base.Strings;
 import de.opengamebackend.collection.model.entities.*;
-import de.opengamebackend.collection.model.repositories.ItemDefinitionRepository;
 import de.opengamebackend.collection.model.repositories.ItemTagRepository;
 import de.opengamebackend.collection.model.repositories.LoadoutRepository;
 import de.opengamebackend.collection.model.repositories.LoadoutTypeRepository;
-import de.opengamebackend.collection.model.requests.*;
+import de.opengamebackend.collection.model.requests.LoadoutRequest;
+import de.opengamebackend.collection.model.requests.PutLoadoutTypesRequest;
+import de.opengamebackend.collection.model.requests.PutLoadoutTypesRequestType;
+import de.opengamebackend.collection.model.requests.PutLoadoutTypesRequestTypeRule;
 import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
@@ -23,15 +25,17 @@ public class LoadoutService {
     private final LoadoutRepository loadoutRepository;
     private final LoadoutTypeRepository loadoutTypeRepository;
     private final ItemTagRepository itemTagRepository;
-    private final ItemDefinitionRepository itemDefinitionRepository;
+
+    private final LoadoutMapper mapper;
 
     @Autowired
     public LoadoutService(LoadoutRepository loadoutRepository, LoadoutTypeRepository loadoutTypeRepository,
-                          ItemTagRepository itemTagRepository, ItemDefinitionRepository itemDefinitionRepository) {
+                          ItemTagRepository itemTagRepository, LoadoutMapper mapper) {
         this.loadoutRepository = loadoutRepository;
         this.loadoutTypeRepository = loadoutTypeRepository;
         this.itemTagRepository = itemTagRepository;
-        this.itemDefinitionRepository = itemDefinitionRepository;
+
+        this.mapper = mapper;
     }
 
     public AddLoadoutResponse addLoadout(String playerId, LoadoutRequest request) throws ApiException {
@@ -46,7 +50,10 @@ public class LoadoutService {
         }
 
         Loadout loadout = new Loadout();
-        mapLoadout(playerId, loadoutType, request, loadout);
+
+        mapper.mapLoadout(playerId, loadoutType, request, loadout);
+        mapper.verifyLoadout(loadout);
+
         loadoutRepository.save(loadout);
 
         return new AddLoadoutResponse(loadout.getId());
@@ -103,7 +110,9 @@ public class LoadoutService {
             throw new ApiException(ApiErrors.UNKNOWN_LOADOUT_TYPE_CODE, ApiErrors.UNKNOWN_LOADOUT_TYPE_MESSAGE);
         }
 
-        mapLoadout(playerId, loadoutType, request, loadout);
+        mapper.mapLoadout(playerId, loadoutType, request, loadout);
+        mapper.verifyLoadout(loadout);
+
         loadoutRepository.save(loadout);
     }
 
@@ -176,28 +185,5 @@ public class LoadoutService {
         // Save entities.
         loadoutTypeRepository.deleteAll();
         loadoutTypeRepository.saveAll(loadoutTypes);
-    }
-
-    private void mapLoadout(String playerId, LoadoutType loadoutType, LoadoutRequest request, Loadout loadout)
-            throws ApiException {
-        loadout.setPlayerId(playerId);
-        loadout.setType(loadoutType);
-
-        loadout.getItems().clear();
-
-        for (LoadoutRequestItem item : request.getItems()) {
-            ItemDefinition itemDefinition = itemDefinitionRepository.findById(item.getId()).orElse(null);
-
-            if (itemDefinition == null) {
-                throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
-            }
-
-            LoadoutItem itemEntity = new LoadoutItem();
-            itemEntity.setLoadout(loadout);
-            itemEntity.setItemDefinition(itemDefinition);
-            itemEntity.setCount(item.getCount());
-
-            loadout.getItems().add(itemEntity);
-        }
     }
 }

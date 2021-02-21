@@ -26,6 +26,8 @@ public class LoadoutServiceTests {
     private ItemTagRepository itemTagRepository;
     private ItemDefinitionRepository itemDefinitionRepository;
 
+    private LoadoutMapper loadoutMapper;
+
     private LoadoutService loadoutService;
 
     @BeforeEach
@@ -35,8 +37,10 @@ public class LoadoutServiceTests {
         itemTagRepository = mock(ItemTagRepository.class);
         itemDefinitionRepository = mock(ItemDefinitionRepository.class);
 
+        loadoutMapper = mock(LoadoutMapper.class);
+
         loadoutService = new LoadoutService(loadoutRepository, loadoutTypeRepository, itemTagRepository,
-                itemDefinitionRepository);
+                loadoutMapper);
     }
 
     @Test
@@ -56,26 +60,6 @@ public class LoadoutServiceTests {
         assertThatExceptionOfType(ApiException.class)
                 .isThrownBy(() -> loadoutService.addLoadout("testPlayer", request))
                 .withMessage(ApiErrors.UNKNOWN_LOADOUT_TYPE_MESSAGE);
-    }
-
-    @Test
-    public void givenUnknownItemDefinition_whenAddLoadout_thenThrowException() {
-        // GIVEN
-        String loadoutTypeId = "testLoadoutType";
-
-        LoadoutType loadoutType = mock(LoadoutType.class);
-        when(loadoutTypeRepository.findById(loadoutTypeId)).thenReturn(Optional.of(loadoutType));
-
-        LoadoutRequestItem item = mock(LoadoutRequestItem.class);
-
-        LoadoutRequest request = mock(LoadoutRequest.class);
-        when(request.getType()).thenReturn(loadoutTypeId);
-        when(request.getItems()).thenReturn(Lists.list(item));
-
-        // WHEN & THEN
-        assertThatExceptionOfType(ApiException.class)
-                .isThrownBy(() -> loadoutService.addLoadout("testPlayer", request))
-                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
     }
 
     @Test
@@ -108,14 +92,7 @@ public class LoadoutServiceTests {
 
         Loadout loadout = argumentCaptor.getValue();
 
-        assertThat(loadout).isNotNull();
-        assertThat(loadout.getPlayerId()).isEqualTo(playerId);
-        assertThat(loadout.getType()).isEqualTo(loadoutType);
-        assertThat(loadout.getItems()).isNotNull();
-        assertThat(loadout.getItems()).hasSize(1);
-        assertThat(loadout.getItems().get(0).getLoadout()).isEqualTo(loadout);
-        assertThat(loadout.getItems().get(0).getItemDefinition()).isEqualTo(itemDefinition);
-        assertThat(loadout.getItems().get(0).getCount()).isEqualTo(item.getCount());
+        verify(loadoutMapper).mapLoadout(playerId, loadoutType, request, loadout);
 
         assertThat(response.getLoadoutId()).isEqualTo(loadout.getId());
     }
@@ -197,29 +174,7 @@ public class LoadoutServiceTests {
                 .withMessage(ApiErrors.UNKNOWN_LOADOUT_TYPE_MESSAGE);
     }
 
-    @Test
-    public void givenUnknownItemDefinition_whenPutLoadout_thenThrowException() {
-        // GIVEN
-        long loadoutId = 1L;
-        String loadoutTypeId = "testLoadoutType";
 
-        Loadout loadout = mock(Loadout.class);
-        when(loadoutRepository.findById(loadoutId)).thenReturn(Optional.of(loadout));
-
-        LoadoutType loadoutType = mock(LoadoutType.class);
-        when(loadoutTypeRepository.findById(loadoutTypeId)).thenReturn(Optional.of(loadoutType));
-
-        LoadoutRequestItem item = mock(LoadoutRequestItem.class);
-
-        LoadoutRequest request = mock(LoadoutRequest.class);
-        when(request.getType()).thenReturn(loadoutTypeId);
-        when(request.getItems()).thenReturn(Lists.list(item));
-
-        // WHEN & THEN
-        assertThatExceptionOfType(ApiException.class)
-                .isThrownBy(() -> loadoutService.putLoadout("testPlayer", loadoutId, request))
-                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
-    }
 
     @Test
     public void givenValidLoadout_whenPutLoadout_thenSaveLoadout() throws ApiException {
@@ -250,9 +205,7 @@ public class LoadoutServiceTests {
         loadoutService.putLoadout(playerId, loadoutId, request);
 
         // THEN
-        verify(loadout).setPlayerId(playerId);
-        verify(loadout).setType(loadoutType);
-
+        verify(loadoutMapper).mapLoadout(playerId, loadoutType, request, loadout);
         verify(loadoutRepository).save(loadout);
     }
 
