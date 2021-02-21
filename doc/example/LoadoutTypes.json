@@ -1,0 +1,33 @@
+{
+  "loadoutTypes": [
+    {
+      "id": "HeroEquipment",
+      "rules": [
+        {
+          "itemTag": "Head",
+          "minTotal": 0,
+          "maxTotal": 1,
+          "maxCopies": 1
+        },
+        {
+          "itemTag": "Main Hand",
+          "minTotal": 0,
+          "maxTotal": 1,
+          "maxCopies": 1
+        },
+        {
+          "itemTag": "Chest",
+          "minTotal": 0,
+          "maxTotal": 1,
+          "maxCopies": 1
+        },
+        {
+          "itemTag": "Feet",
+          "minTotal": 0,
+          "maxTotal": 1,
+          "maxCopies": 1
+        }
+      ]
+    }
+  ]
+}
