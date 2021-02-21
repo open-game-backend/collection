@@ -7,9 +7,11 @@ import de.opengamebackend.collection.model.requests.LoadoutRequestItem;
 import de.opengamebackend.net.ApiErrors;
 import de.opengamebackend.net.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
+@Component
 public class LoadoutMapper {
     private final ItemDefinitionRepository itemDefinitionRepository;
 
