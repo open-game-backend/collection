@@ -145,11 +145,41 @@ public class CollectionService {
     public GetItemDefinitionsResponse getItemDefinitions() {
         List<GetItemDefinitionsResponseItem> itemDefinitions = new ArrayList<>();
 
-        for (ItemDefinition itemDefinition : itemDefinitionRepository.findAll()) {
-            itemDefinitions.add(new GetItemDefinitionsResponseItem(itemDefinition.getId(),
-                    itemDefinition.getItemTags().stream()
+        for (ItemDefinition itemDefinitionEntity : itemDefinitionRepository.findAll()) {
+            GetItemDefinitionsResponseItem itemDefinition = new GetItemDefinitionsResponseItem();
+            itemDefinition.setId(itemDefinitionEntity.getId());
+            itemDefinition.setMaxCount(itemDefinitionEntity.getMaxCount());
+            itemDefinition.setTags(itemDefinitionEntity.getItemTags().stream()
+                    .map(ItemTag::getTag)
+                    .collect(Collectors.toList()));
+
+            ArrayList<GetItemDefinitionsResponseItemContainer> itemContainers = new ArrayList<>();
+
+            for (ItemContainer itemContainerEntity : itemDefinitionEntity.getContainers()) {
+                GetItemDefinitionsResponseItemContainer itemContainer = new GetItemDefinitionsResponseItemContainer();
+                itemContainer.setItemCount(itemContainerEntity.getItemCount());
+
+                ArrayList<GetItemDefinitionsResponseItemContainerItem> containedItems = new ArrayList<>();
+
+                for (ContainedItem containedItemEntity : itemContainerEntity.getContainedItems()) {
+                    GetItemDefinitionsResponseItemContainerItem item = new GetItemDefinitionsResponseItemContainerItem();
+
+                    item.setRequiredTags(containedItemEntity.getRequiredTags().stream()
                             .map(ItemTag::getTag)
-                            .collect(Collectors.toList())));
+                            .collect(Collectors.toList()));
+                    item.setRelativeProbability(containedItemEntity.getRelativeProbability());
+
+                    containedItems.add(item);
+                }
+
+                itemContainer.setContainedItems(containedItems);
+
+                itemContainers.add(itemContainer);
+            }
+
+            itemDefinition.setContainers(itemContainers);
+
+            itemDefinitions.add(itemDefinition);
         }
 
         return new GetItemDefinitionsResponse(itemDefinitions);
@@ -189,7 +219,6 @@ public class CollectionService {
 
         // Collect requested item definitions.
         for (PutItemDefinitionsRequestItem itemDefinition : request.getItemDefinitions()) {
-
             ItemDefinition itemDefinitionEntity = itemDefinitions.get(itemDefinition.getId());
 
             if (itemDefinitionEntity == null) {
@@ -198,9 +227,39 @@ public class CollectionService {
                 itemDefinitions.put(itemDefinition.getId(), itemDefinitionEntity);
             }
 
+            itemDefinitionEntity.setMaxCount(itemDefinition.getMaxCount());
             itemDefinitionEntity.setItemTags(itemDefinition.getTags().stream()
                     .map(itemTags::get)
                     .collect(Collectors.toList()));
+
+            ArrayList<ItemContainer> itemContainerEntities = new ArrayList<>();
+
+            for (PutItemDefinitionsRequestItemContainer itemContainer : itemDefinition.getContainers()) {
+                ItemContainer itemContainerEntity = new ItemContainer();
+                itemContainerEntity.setOwningItemDefinition(itemDefinitionEntity);
+                itemContainerEntity.setItemCount(itemContainer.getItemCount());
+
+                ArrayList<ContainedItem> containedItemEntities = new ArrayList<>();
+
+                for (PutItemDefinitionsRequestItemContainerItem item : itemContainer.getContainedItems()) {
+                    ContainedItem containedItemEntity = new ContainedItem();
+
+                    containedItemEntity.setItemContainer(itemContainerEntity);
+                    containedItemEntity.setRequiredTags(item.getRequiredTags().stream()
+                            .map(itemTags::get)
+                            .collect(Collectors.toList()));
+                    containedItemEntity.setRelativeProbability(item.getRelativeProbability());
+
+                    containedItemEntities.add(containedItemEntity);
+                }
+
+                itemContainerEntity.setContainedItems(containedItemEntities);
+
+                itemContainerEntities.add(itemContainerEntity);
+            }
+
+            itemDefinitionEntity.getContainers().clear();
+            itemDefinitionEntity.getContainers().addAll(itemContainerEntities);
 
             itemDefinitionsToSave.add(itemDefinitionEntity);
         }

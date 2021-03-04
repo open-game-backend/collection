@@ -325,12 +325,23 @@ public class CollectionServiceTests {
         ItemTag itemTag = mock(ItemTag.class);
         when(itemTag.getTag()).thenReturn("testItemTag");
 
+        ContainedItem containedItem = mock(ContainedItem.class);
+        when(containedItem.getRelativeProbability()).thenReturn(5);
+        when(containedItem.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getItemCount()).thenReturn(2);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem));
+
         ItemDefinition itemDefinition1 = mock(ItemDefinition.class);
         when(itemDefinition1.getId()).thenReturn("testItemDefinition1");
+        when(itemDefinition1.getMaxCount()).thenReturn(2);
         when(itemDefinition1.getItemTags()).thenReturn(Lists.list(itemTag));
+        when(itemDefinition1.getContainers()).thenReturn(Lists.list(itemContainer));
 
         ItemDefinition itemDefinition2 = mock(ItemDefinition.class);
         when(itemDefinition2.getId()).thenReturn("testItemDefinition2");
+        when(itemDefinition2.getMaxCount()).thenReturn(3);
         when(itemDefinition2.getItemTags()).thenReturn(Lists.list(itemTag));
 
         when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(itemDefinition1, itemDefinition2));
@@ -343,10 +354,21 @@ public class CollectionServiceTests {
         assertThat(response.getItemDefinitions()).isNotNull();
         assertThat(response.getItemDefinitions()).hasSize(2);
         assertThat(response.getItemDefinitions().get(0).getId()).isEqualTo(itemDefinition1.getId());
+        assertThat(response.getItemDefinitions().get(0).getMaxCount()).isEqualTo(itemDefinition1.getMaxCount());
         assertThat(response.getItemDefinitions().get(0).getTags()).isNotNull();
         assertThat(response.getItemDefinitions().get(0).getTags()).hasSize(1);
         assertThat(response.getItemDefinitions().get(0).getTags().get(0)).isEqualTo(itemTag.getTag());
+        assertThat(response.getItemDefinitions().get(0).getContainers()).isNotNull();
+        assertThat(response.getItemDefinitions().get(0).getContainers()).hasSize(1);
+        assertThat(response.getItemDefinitions().get(0).getContainers().get(0).getItemCount()).isEqualTo(itemContainer.getItemCount());
+        assertThat(response.getItemDefinitions().get(0).getContainers().get(0).getContainedItems()).isNotNull();
+        assertThat(response.getItemDefinitions().get(0).getContainers().get(0).getContainedItems()).hasSize(1);
+        assertThat(response.getItemDefinitions().get(0).getContainers().get(0).getContainedItems().get(0).getRelativeProbability())
+                .isEqualTo(containedItem.getRelativeProbability());
+        assertThat(response.getItemDefinitions().get(0).getContainers().get(0).getContainedItems().get(0).getRequiredTags())
+                .containsExactly(itemTag.getTag());
         assertThat(response.getItemDefinitions().get(1).getId()).isEqualTo(itemDefinition2.getId());
+        assertThat(response.getItemDefinitions().get(1).getMaxCount()).isEqualTo(itemDefinition2.getMaxCount());
         assertThat(response.getItemDefinitions().get(1).getTags()).isNotNull();
         assertThat(response.getItemDefinitions().get(1).getTags()).hasSize(1);
         assertThat(response.getItemDefinitions().get(1).getTags().get(0)).isEqualTo(itemTag.getTag());
@@ -451,12 +473,22 @@ public class CollectionServiceTests {
         // GIVEN
         String itemTag = "A";
 
+        PutItemDefinitionsRequestItemContainerItem containedItem = mock(PutItemDefinitionsRequestItemContainerItem.class);
+        when(containedItem.getRelativeProbability()).thenReturn(2);
+        when(containedItem.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        PutItemDefinitionsRequestItemContainer container = mock(PutItemDefinitionsRequestItemContainer.class);
+        when(container.getItemCount()).thenReturn(3);
+        when(container.getContainedItems()).thenReturn(Lists.list(containedItem));
+
         PutItemDefinitionsRequestItem item1 = mock(PutItemDefinitionsRequestItem.class);
         when(item1.getId()).thenReturn("Item1");
+        when(item1.getMaxCount()).thenReturn(5);
+        when(item1.getTags()).thenReturn(Lists.list(itemTag));
+        when(item1.getContainers()).thenReturn(Lists.list(container));
 
         PutItemDefinitionsRequestItem item2 = mock(PutItemDefinitionsRequestItem.class);
         when(item2.getId()).thenReturn("Item2");
-        when(item2.getTags()).thenReturn(Lists.list(itemTag));
 
         PutItemDefinitionsRequest request = mock(PutItemDefinitionsRequest.class);
         when(request.getItemDefinitions()).thenReturn(Lists.list(item1, item2));
@@ -473,6 +505,26 @@ public class CollectionServiceTests {
         assertThat(savedDefinitions).isNotNull();
         assertThat(savedDefinitions).hasSize(2);
         assertThat(savedDefinitions.get(0).getId()).isEqualTo(item1.getId());
+        assertThat(savedDefinitions.get(0).getMaxCount()).isEqualTo(item1.getMaxCount());
+        assertThat(savedDefinitions.get(0).getItemTags()).isNotNull();
+        assertThat(savedDefinitions.get(0).getItemTags()).hasSize(1);
+        assertThat(savedDefinitions.get(0).getItemTags().get(0).getTag()).isEqualTo(itemTag);
+        assertThat(savedDefinitions.get(0).getContainers()).isNotNull();
+        assertThat(savedDefinitions.get(0).getContainers()).hasSize(1);
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getOwningItemDefinition()).isEqualTo(savedDefinitions.get(0));
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getItemCount()).isEqualTo(container.getItemCount());
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems()).isNotNull();
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems()).hasSize(1);
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems().get(0).getItemContainer())
+                .isEqualTo(savedDefinitions.get(0).getContainers().get(0));
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems().get(0).getRelativeProbability())
+                .isEqualTo(containedItem.getRelativeProbability());
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems().get(0).getRequiredTags())
+                .isNotNull();
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems().get(0).getRequiredTags())
+                .hasSize(1);
+        assertThat(savedDefinitions.get(0).getContainers().get(0).getContainedItems().get(0).getRequiredTags().get(0).getTag())
+                .isEqualTo(itemTag);
         assertThat(savedDefinitions.get(1).getId()).isEqualTo(item2.getId());
     }
 
