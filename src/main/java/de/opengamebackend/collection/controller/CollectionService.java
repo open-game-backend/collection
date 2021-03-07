@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,29 +92,10 @@ public class CollectionService {
 
     public void putCollectionItems(String playerId, String itemDefinitionId, PutCollectionItemsRequest request)
             throws ApiException {
-        if (Strings.isNullOrEmpty(playerId)) {
-            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
-        }
-
-        if (Strings.isNullOrEmpty(itemDefinitionId)) {
-            throw new ApiException(ApiErrors.MISSING_ITEM_DEFINITION_CODE, ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
-        }
-
-        ItemDefinition itemDefinition = itemDefinitionRepository.findById(itemDefinitionId).orElse(null);
-
-        if (itemDefinition == null) {
-            throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
-        }
+        CollectionItem collectionItem = getCollectionItemOfPlayer(playerId, itemDefinitionId);
 
         if (request.getItemCount() <= 0) {
             throw new ApiException(ApiErrors.INVALID_ITEM_COUNT_CODE, ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
-        }
-
-        CollectionItem collectionItem =
-                collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition).orElse(null);
-
-        if (collectionItem == null) {
-            throw new ApiException(ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_CODE, ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE);
         }
 
         collectionItem.setCount(request.getItemCount());
@@ -408,5 +386,109 @@ public class CollectionService {
                 .map(i -> new ClaimItemSetResponseItem(i.getItemDefinition().getId(), i.getCount()))
                 .collect(Collectors.toList()));
         return response;
+    }
+
+    public OpenContainerResponse openContainer(String playerId, String itemDefinitionId) throws ApiException {
+        // Get container owned by player.
+        CollectionItem container = getCollectionItemOfPlayer(playerId, itemDefinitionId);
+        ItemDefinition containerDefinition = container.getItemDefinition();
+
+        if (containerDefinition.getContainers().isEmpty()) {
+            throw new ApiException(ApiErrors.ITEM_NOT_A_CONTAINER_CODE, ApiErrors.ITEM_NOT_A_CONTAINER_MESSAGE);
+        }
+
+        // Get all available item definitions.
+        ArrayList<ItemDefinition> allItemDefinitions = new ArrayList<>();
+        itemDefinitionRepository.findAll().forEach(allItemDefinitions::add);
+
+        // Open all containers.
+        HashMap<String, Integer> itemsToCreate = new HashMap<>();
+        Random random = new Random();
+
+        for (ItemContainer subContainer : containerDefinition.getContainers()) {
+            int totalProbability = subContainer.getContainedItems().stream()
+                    .map(ContainedItem::getRelativeProbability)
+                    .reduce(0, Integer::sum);
+
+            for (int i = 0; i < subContainer.getItemCount(); ++i) {
+                // Find item type to create.
+                int roll = random.nextInt(totalProbability);
+                ContainedItem selectedItem = null;
+
+                for (ContainedItem containedItem : subContainer.getContainedItems()) {
+                    roll -= containedItem.getRelativeProbability();
+
+                    if (roll < 0) {
+                        selectedItem = containedItem;
+                        break;
+                    }
+                }
+
+                // Find item to create.
+                final ContainedItem finalSelectedItem = selectedItem;
+
+                if (finalSelectedItem == null) {
+                    throw new RuntimeException("No item selected from container. This most likely indicates a bug.");
+                }
+
+                List<ItemDefinition> matchingItemDefinitions = allItemDefinitions.stream()
+                        .filter(itemDefinition -> itemDefinition.getItemTags().containsAll(finalSelectedItem.getRequiredTags()))
+                        .collect(Collectors.toList());
+
+                int randomIndex = random.nextInt(matchingItemDefinitions.size());
+                ItemDefinition selectedItemDefinition = matchingItemDefinitions.get(randomIndex);
+
+                // Add item.
+                itemsToCreate.put(selectedItemDefinition.getId(), itemsToCreate.getOrDefault(selectedItemDefinition.getId(), 0) + 1);
+            }
+        }
+
+        // Add all items.
+        for (Map.Entry<String, Integer> itemToCreate : itemsToCreate.entrySet()) {
+            AddCollectionItemsRequest addCollectionItemsRequest = new AddCollectionItemsRequest();
+            addCollectionItemsRequest.setItemDefinitionId(itemToCreate.getKey());
+            addCollectionItemsRequest.setItemCount(itemToCreate.getValue());
+            addCollectionItems(playerId, addCollectionItemsRequest);
+        }
+
+        // Remove opened container.
+        int newCount = container.getCount() - 1;
+
+        if (newCount <= 0) {
+            collectionItemRepository.delete(container);
+        } else {
+            container.setCount(newCount);
+            collectionItemRepository.save(container);
+        }
+
+        // Return response.
+        OpenContainerResponse response = new OpenContainerResponse();
+        response.setAddedItems(itemsToCreate);
+        return response;
+    }
+
+    private CollectionItem getCollectionItemOfPlayer(String playerId, String itemDefinitionId) throws ApiException {
+        if (Strings.isNullOrEmpty(playerId)) {
+            throw new ApiException(ApiErrors.MISSING_PLAYER_ID_CODE, ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+        }
+
+        if (Strings.isNullOrEmpty(itemDefinitionId)) {
+            throw new ApiException(ApiErrors.MISSING_ITEM_DEFINITION_CODE, ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+        }
+
+        ItemDefinition itemDefinition = itemDefinitionRepository.findById(itemDefinitionId).orElse(null);
+
+        if (itemDefinition == null) {
+            throw new ApiException(ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE, ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+        }
+
+        CollectionItem collectionItem =
+                collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition).orElse(null);
+
+        if (collectionItem == null) {
+            throw new ApiException(ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_CODE, ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE);
+        }
+
+        return collectionItem;
     }
 }

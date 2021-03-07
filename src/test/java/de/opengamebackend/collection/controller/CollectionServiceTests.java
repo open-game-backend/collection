@@ -225,16 +225,21 @@ public class CollectionServiceTests {
     @Test
     public void givenInvalidItemCount_whenPutCollectionItems_thenThrowException() {
         // GIVEN
+        String playerId = "testPlayer";
         String itemDefinitionId = "testItemDefinition";
 
         ItemDefinition itemDefinition = mock(ItemDefinition.class);
         when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
 
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
         PutCollectionItemsRequest request = mock(PutCollectionItemsRequest.class);
 
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
-                .isThrownBy(() -> collectionService.putCollectionItems("testPlayer", itemDefinitionId, request))
+                .isThrownBy(() -> collectionService.putCollectionItems(playerId, itemDefinitionId, request))
                 .withMessage(ApiErrors.INVALID_ITEM_COUNT_MESSAGE);
     }
 
@@ -906,5 +911,253 @@ public class CollectionServiceTests {
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getId()).isEqualTo(itemSetItem.getItemDefinition().getId());
         assertThat(response.getItems().get(0).getCount()).isEqualTo(itemSetItem.getCount());
+    }
+
+    @Test
+    public void givenMissingPlayerId_whenOpenContainer_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.openContainer(null, null))
+                .withMessage(ApiErrors.MISSING_PLAYER_ID_MESSAGE);
+    }
+
+    @Test
+    public void givenMissingItemDefinitionId_whenOpenContainer_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.openContainer("testPlayer", null))
+                .withMessage(ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenUnknownItemDefinition_whenOpenContainer_thenThrowException() {
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.openContainer("testPlayer", "testItemDefinition"))
+                .withMessage(ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE);
+    }
+
+    @Test
+    public void givenInvalidItem_whenOpenContainer_thenThrowException() {
+        // GIVEN
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.openContainer("testPlayer", itemDefinitionId))
+                .withMessage(ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE);
+    }
+
+    @Test
+    public void givenInvalidContainer_whenOpenContainer_thenThrowException() {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.emptyList());
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        // WHEN & THEN
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> collectionService.openContainer(playerId, itemDefinitionId))
+                .withMessage(ApiErrors.ITEM_NOT_A_CONTAINER_MESSAGE);
+    }
+
+    @Test
+    public void givenValidContainer_whenOpenContainer_thenAddsContainedItem() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionId = "testContainedItemDefinition";
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinition = mock(ItemDefinition.class);
+        when(containedItemDefinition.getId()).thenReturn(containedItemDefinitionId);
+        when(containedItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionId)).thenReturn(Optional.of(containedItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinition));
+
+        ContainedItem containedItem1 = mock(ContainedItem.class);
+        when(containedItem1.getRelativeProbability()).thenReturn(2);
+        when(containedItem1.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ContainedItem containedItem2 = mock(ContainedItem.class);
+        when(containedItem2.getRelativeProbability()).thenReturn(3);
+        when(containedItem2.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem1, containedItem2));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        // WHEN
+        collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        ArgumentCaptor<CollectionItem> argumentCaptor = ArgumentCaptor.forClass(CollectionItem.class);
+        verify(collectionItemRepository).save(argumentCaptor.capture());
+
+        CollectionItem savedItem = argumentCaptor.getValue();
+
+        assertThat(savedItem).isNotNull();
+        assertThat(savedItem.getPlayerId()).isEqualTo(playerId);
+        assertThat(savedItem.getItemDefinition()).isEqualTo(containedItemDefinition);
+        assertThat(savedItem.getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void givenValidContainer_whenOpenContainer_thenRemovesContainer() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionId = "testContainedItemDefinition";
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinition = mock(ItemDefinition.class);
+        when(containedItemDefinition.getId()).thenReturn(containedItemDefinitionId);
+        when(containedItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionId)).thenReturn(Optional.of(containedItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinition));
+
+        ContainedItem containedItem1 = mock(ContainedItem.class);
+        when(containedItem1.getRelativeProbability()).thenReturn(2);
+        when(containedItem1.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ContainedItem containedItem2 = mock(ContainedItem.class);
+        when(containedItem2.getRelativeProbability()).thenReturn(3);
+        when(containedItem2.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem1, containedItem2));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItem.getCount()).thenReturn(2);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        // WHEN
+        collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        verify(collectionItem).setCount(collectionItem.getCount() - 1);
+        verify(collectionItemRepository).save(collectionItem);
+    }
+
+    @Test
+    public void givenLastValidContainer_whenOpenContainer_thenRemovesContainer() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionId = "testContainedItemDefinition";
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinition = mock(ItemDefinition.class);
+        when(containedItemDefinition.getId()).thenReturn(containedItemDefinitionId);
+        when(containedItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionId)).thenReturn(Optional.of(containedItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinition));
+
+        ContainedItem containedItem1 = mock(ContainedItem.class);
+        when(containedItem1.getRelativeProbability()).thenReturn(2);
+        when(containedItem1.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ContainedItem containedItem2 = mock(ContainedItem.class);
+        when(containedItem2.getRelativeProbability()).thenReturn(3);
+        when(containedItem2.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem1, containedItem2));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        // WHEN
+        collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        verify(collectionItemRepository).delete(collectionItem);
+    }
+
+    @Test
+    public void givenValidContainer_whenOpenContainer_thenReturnsAddedItems() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionId = "testContainedItemDefinition";
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinition = mock(ItemDefinition.class);
+        when(containedItemDefinition.getId()).thenReturn(containedItemDefinitionId);
+        when(containedItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionId)).thenReturn(Optional.of(containedItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinition));
+
+        ContainedItem containedItem1 = mock(ContainedItem.class);
+        when(containedItem1.getRelativeProbability()).thenReturn(2);
+        when(containedItem1.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ContainedItem containedItem2 = mock(ContainedItem.class);
+        when(containedItem2.getRelativeProbability()).thenReturn(3);
+        when(containedItem2.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem1, containedItem2));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        // WHEN
+        OpenContainerResponse response = collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        assertThat(response).isNotNull();
+        assertThat(response.getAddedItems()).isNotNull();
+        assertThat(response.getAddedItems()).hasSize(1);
+        assertThat(response.getAddedItems().get(containedItemDefinitionId)).isEqualTo(1);
     }
 }
