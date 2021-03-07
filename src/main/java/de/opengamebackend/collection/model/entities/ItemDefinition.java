@@ -10,11 +10,17 @@ public class ItemDefinition {
     @Id
     private String id;
 
+    private Integer maxCount;
+
     @ManyToMany
     private List<ItemTag> itemTags;
 
+    @OneToMany(mappedBy = "owningItemDefinition", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemContainer> containers;
+
     public ItemDefinition() {
         itemTags = new ArrayList<>();
+        containers = new ArrayList<>();
     }
 
     public String getId() {
@@ -25,11 +31,27 @@ public class ItemDefinition {
         this.id = id;
     }
 
+    public Integer getMaxCount() {
+        return maxCount;
+    }
+
+    public void setMaxCount(Integer maxCount) {
+        this.maxCount = maxCount;
+    }
+
     public List<ItemTag> getItemTags() {
         return itemTags;
     }
 
     public void setItemTags(List<ItemTag> itemTags) {
         this.itemTags = itemTags;
+    }
+
+    public List<ItemContainer> getContainers() {
+        return containers;
+    }
+
+    public void setContainers(List<ItemContainer> containers) {
+        this.containers = containers;
     }
 }

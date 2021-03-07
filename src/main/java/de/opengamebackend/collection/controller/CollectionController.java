@@ -120,8 +120,8 @@ public class CollectionController {
                     responseCode = "400",
                     description =
                             "Error " + ApiErrors.MISSING_PLAYER_ID_CODE + ": " + ApiErrors.MISSING_PLAYER_ID_MESSAGE + "<br />" +
-                                    "Error " + ApiErrors.MISSING_ITEM_DEFINITION_CODE + ": " + ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE + "<br />" +
-                                    "Error " + ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE + ": " + ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE,
+                            "Error " + ApiErrors.MISSING_ITEM_DEFINITION_CODE + ": " + ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE + "<br />" +
+                            "Error " + ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE + ": " + ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE,
                     content = { @Content })
     })
     public ResponseEntity<Void> deleteCollectionItem(@PathVariable String playerId,
@@ -217,6 +217,29 @@ public class CollectionController {
     })
     public ResponseEntity<ClaimItemSetResponse> claimItemSet(@RequestHeader(HttpHeader.PLAYER_ID) String playerId) throws ApiException {
         ClaimItemSetResponse response = collectionService.claimItemSet(playerId);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/client/opencontainer/{itemDefinitionId}")
+    @Operation(summary = "Opens an item container owned by the player.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Items found inside the container."),
+            @ApiResponse(
+                    responseCode = "400",
+                    description =
+                            "Error " + ApiErrors.MISSING_PLAYER_ID_CODE + ": " + ApiErrors.MISSING_PLAYER_ID_MESSAGE + "<br />" +
+                            "Error " + ApiErrors.MISSING_ITEM_DEFINITION_CODE + ": " + ApiErrors.MISSING_ITEM_DEFINITION_MESSAGE + "<br />" +
+                            "Error " + ApiErrors.UNKNOWN_ITEM_DEFINITION_CODE + ": " + ApiErrors.UNKNOWN_ITEM_DEFINITION_MESSAGE  + "<br />" +
+                            "Error " + ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_CODE + ": " + ApiErrors.PLAYER_DOES_NOT_OWN_ITEM_MESSAGE  + "<br />" +
+                            "Error " + ApiErrors.ITEM_NOT_A_CONTAINER_CODE + ": " + ApiErrors.ITEM_NOT_A_CONTAINER_MESSAGE,
+                    content = { @Content })
+    })
+    public ResponseEntity<OpenContainerResponse> openContainer(@RequestHeader(HttpHeader.PLAYER_ID) String playerId,
+                                                               @PathVariable String itemDefinitionId)
+            throws ApiException {
+        OpenContainerResponse response = collectionService.openContainer(playerId, itemDefinitionId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

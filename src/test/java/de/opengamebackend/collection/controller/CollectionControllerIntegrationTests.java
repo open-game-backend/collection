@@ -1,6 +1,8 @@
 package de.opengamebackend.collection.controller;
 
 import de.opengamebackend.collection.model.entities.CollectionItem;
+import de.opengamebackend.collection.model.entities.ContainedItem;
+import de.opengamebackend.collection.model.entities.ItemContainer;
 import de.opengamebackend.collection.model.entities.ItemDefinition;
 import de.opengamebackend.collection.model.requests.AddCollectionItemsRequest;
 import de.opengamebackend.collection.model.requests.PutCollectionItemsRequest;
@@ -8,6 +10,7 @@ import de.opengamebackend.collection.model.requests.PutItemDefinitionsRequest;
 import de.opengamebackend.collection.model.requests.PutItemSetsRequest;
 import de.opengamebackend.collection.model.responses.*;
 import de.opengamebackend.test.HttpRequestUtils;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,5 +129,39 @@ public class CollectionControllerIntegrationTests {
     public void whenClaimItemSet_thenOk() throws Exception {
         httpRequestUtils.assertPostOk(mvc, "/client/claimitemset", null, ClaimItemSetResponse.class,
                 "testId");
+    }
+
+    @Test
+    public void whenOpenContainer_thenOk() throws Exception {
+        // GIVEN
+        String playerId = "testPlayerId";
+
+        ItemContainer itemContainer = new ItemContainer();
+
+        ItemDefinition containerItemDefinition = new ItemDefinition();
+        containerItemDefinition.setId("testContainerItemDefinition");
+        containerItemDefinition.setContainers(Lists.list(itemContainer));
+        itemContainer.setOwningItemDefinition(containerItemDefinition);
+
+        ContainedItem containedItem = new ContainedItem();
+        containedItem.setItemContainer(itemContainer);
+        containedItem.setRelativeProbability(2);
+        itemContainer.setContainedItems(Lists.list(containedItem));
+
+        entityManager.persist(containerItemDefinition);
+        entityManager.persist(itemContainer);
+        entityManager.persist(containedItem);
+
+        CollectionItem collectionItem = new CollectionItem();
+        collectionItem.setPlayerId(playerId);
+        collectionItem.setItemDefinition(containerItemDefinition);
+        collectionItem.setCount(1);
+        entityManager.persist(collectionItem);
+
+        entityManager.flush();
+
+        // WHEN & THEN
+        httpRequestUtils.assertPostOk(mvc, "/client/opencontainer/" + containerItemDefinition.getId(), null, OpenContainerResponse.class,
+                playerId);
     }
 }

@@ -3,6 +3,7 @@
     {
       "id": "FancyHat",
       "tags": [
+        "Common",
         "Head"
       ]
     },
@@ -11,18 +12,51 @@
       "tags": [
         "Epic",
         "Main Hand"
-      ]
+      ],
+      "maxCount": 1
     },
     {
       "id": "RuggedBoots",
       "tags": [
+        "Common",
         "Feet"
       ]
     },
     {
       "id": "ShinyArmor",
       "tags": [
+        "Common",
         "Chest"
+      ]
+    },
+    {
+      "id": "SmallBackpack",
+      "tags": [
+        "Loot"
+      ],
+      "containers": [
+        {
+          "itemCount": 2,
+          "containedItems": [
+            {
+              "requiredTags": ["Common"],
+              "relativeProbability": 5
+            },
+            {
+              "requiredTags": ["Epic"],
+              "relativeProbability": 1
+            }
+          ]
+        },
+        {
+          "itemCount": 1,
+          "containedItems": [
+            {
+              "requiredTags": ["Epic"],
+              "relativeProbability": 1
+            }
+          ]
+        }
       ]
     }
   ]

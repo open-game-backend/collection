@@ -1,6 +1,6 @@
 CREATE TABLE collection_itemdefinition (
     id VARCHAR(100) NOT NULL,
-
+    max_count INT(10) UNSIGNED NULL,
     PRIMARY KEY (id)
 );
 
