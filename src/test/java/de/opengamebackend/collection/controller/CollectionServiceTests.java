@@ -1025,6 +1025,130 @@ public class CollectionServiceTests {
     }
 
     @Test
+    public void givenValidContainer_whenOpenContainer_thenDoesNotAddItemAtMaxCount() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionAtMaxCountId = "testContainedItemDefinitionAtMaxCount";
+        String containedOtherItemDefinitionId = "testContainedOtherItemDefinition";
+        int maxCount = 3;
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinitionAtMaxCount = mock(ItemDefinition.class);
+        when(containedItemDefinitionAtMaxCount.getId()).thenReturn(containedItemDefinitionAtMaxCountId);
+        when(containedItemDefinitionAtMaxCount.getItemTags()).thenReturn(Lists.list(itemTag));
+        when(containedItemDefinitionAtMaxCount.getMaxCount()).thenReturn(maxCount);
+
+        ItemDefinition containedOtherItemDefinition = mock(ItemDefinition.class);
+        when(containedOtherItemDefinition.getId()).thenReturn(containedOtherItemDefinitionId);
+        when(containedOtherItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionAtMaxCountId)).thenReturn(Optional.of(containedItemDefinitionAtMaxCount));
+        when(itemDefinitionRepository.findById(containedOtherItemDefinitionId)).thenReturn(Optional.of(containedOtherItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinitionAtMaxCount, containedOtherItemDefinition));
+
+        ContainedItem containedItem = mock(ContainedItem.class);
+        when(containedItem.getRelativeProbability()).thenReturn(2);
+        when(containedItem.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        CollectionItem collectionItemAtMaxCount = mock(CollectionItem.class);
+        when(collectionItemAtMaxCount.getItemDefinition()).thenReturn(containedItemDefinitionAtMaxCount);
+        when(collectionItemAtMaxCount.getCount()).thenReturn(maxCount);
+        when(collectionItemRepository.findByPlayerId(playerId)).thenReturn(Lists.list(collectionItemAtMaxCount));
+
+        // WHEN
+        collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        ArgumentCaptor<CollectionItem> argumentCaptor = ArgumentCaptor.forClass(CollectionItem.class);
+        verify(collectionItemRepository).save(argumentCaptor.capture());
+
+        CollectionItem savedItem = argumentCaptor.getValue();
+
+        assertThat(savedItem).isNotNull();
+        assertThat(savedItem.getItemDefinition()).isNotEqualTo(containedItemDefinitionAtMaxCount);
+    }
+
+    @Test
+    public void givenValidContainer_whenOpenContainer_thenAddsAnyItemIfAllAtMaxCount() throws ApiException {
+        // GIVEN
+        String playerId = "testPlayer";
+        String itemDefinitionId = "testItemDefinition";
+        String containedItemDefinitionAtMaxCountId = "testContainedItemDefinitionAtMaxCount";
+        String containedOtherItemDefinitionId = "testContainedOtherItemDefinition";
+        int maxCount = 3;
+
+        ItemTag itemTag = mock(ItemTag.class);
+
+        ItemDefinition containedItemDefinitionAtMaxCount = mock(ItemDefinition.class);
+        when(containedItemDefinitionAtMaxCount.getId()).thenReturn(containedItemDefinitionAtMaxCountId);
+        when(containedItemDefinitionAtMaxCount.getItemTags()).thenReturn(Lists.list(itemTag));
+        when(containedItemDefinitionAtMaxCount.getMaxCount()).thenReturn(maxCount);
+
+        ItemDefinition containedOtherItemDefinition = mock(ItemDefinition.class);
+        when(containedOtherItemDefinition.getId()).thenReturn(containedOtherItemDefinitionId);
+        when(containedOtherItemDefinition.getItemTags()).thenReturn(Lists.list(itemTag));
+        when(containedOtherItemDefinition.getMaxCount()).thenReturn(maxCount);
+
+        when(itemDefinitionRepository.findById(containedItemDefinitionAtMaxCountId)).thenReturn(Optional.of(containedItemDefinitionAtMaxCount));
+        when(itemDefinitionRepository.findById(containedOtherItemDefinitionId)).thenReturn(Optional.of(containedOtherItemDefinition));
+        when(itemDefinitionRepository.findAll()).thenReturn(Lists.list(containedItemDefinitionAtMaxCount, containedOtherItemDefinition));
+
+        ContainedItem containedItem = mock(ContainedItem.class);
+        when(containedItem.getRelativeProbability()).thenReturn(2);
+        when(containedItem.getRequiredTags()).thenReturn(Lists.list(itemTag));
+
+        ItemContainer itemContainer = mock(ItemContainer.class);
+        when(itemContainer.getContainedItems()).thenReturn(Lists.list(containedItem));
+        when(itemContainer.getItemCount()).thenReturn(1);
+
+        ItemDefinition itemDefinition = mock(ItemDefinition.class);
+        when(itemDefinition.getContainers()).thenReturn(Lists.list(itemContainer));
+        when(itemDefinitionRepository.findById(itemDefinitionId)).thenReturn(Optional.of(itemDefinition));
+
+        CollectionItem collectionItem = mock(CollectionItem.class);
+        when(collectionItem.getItemDefinition()).thenReturn(itemDefinition);
+        when(collectionItemRepository.findByPlayerIdAndItemDefinition(playerId, itemDefinition))
+                .thenReturn(Optional.of(collectionItem));
+
+        CollectionItem collectionItemAtMaxCount = mock(CollectionItem.class);
+        when(collectionItemAtMaxCount.getItemDefinition()).thenReturn(containedItemDefinitionAtMaxCount);
+        when(collectionItemAtMaxCount.getCount()).thenReturn(maxCount);
+        CollectionItem otherCollectionItemAtMaxCount = mock(CollectionItem.class);
+        when(otherCollectionItemAtMaxCount.getItemDefinition()).thenReturn(containedOtherItemDefinition);
+        when(otherCollectionItemAtMaxCount.getCount()).thenReturn(maxCount);
+        when(collectionItemRepository.findByPlayerId(playerId)).thenReturn(Lists.list(collectionItemAtMaxCount, otherCollectionItemAtMaxCount));
+
+        // WHEN
+        collectionService.openContainer(playerId, itemDefinitionId);
+
+        // THEN
+        ArgumentCaptor<CollectionItem> argumentCaptor = ArgumentCaptor.forClass(CollectionItem.class);
+        verify(collectionItemRepository).save(argumentCaptor.capture());
+
+        CollectionItem savedItem = argumentCaptor.getValue();
+
+        assertThat(savedItem).isNotNull();
+        assertThat(savedItem.getPlayerId()).isEqualTo(playerId);
+        assertThat(savedItem.getItemDefinition()).isIn(containedItemDefinitionAtMaxCount, containedOtherItemDefinition);
+        assertThat(savedItem.getCount()).isEqualTo(1);
+    }
+
+    @Test
     public void givenValidContainer_whenOpenContainer_thenRemovesContainer() throws ApiException {
         // GIVEN
         String playerId = "testPlayer";

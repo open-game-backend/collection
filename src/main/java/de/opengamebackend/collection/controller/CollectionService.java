@@ -401,6 +401,9 @@ public class CollectionService {
         ArrayList<ItemDefinition> allItemDefinitions = new ArrayList<>();
         itemDefinitionRepository.findAll().forEach(allItemDefinitions::add);
 
+        // Count owned items.
+        List<CollectionItem> ownedItems = collectionItemRepository.findByPlayerId(playerId);
+
         // Open all containers.
         HashMap<String, Integer> itemsToCreate = new HashMap<>();
         Random random = new Random();
@@ -435,8 +438,19 @@ public class CollectionService {
                         .filter(itemDefinition -> itemDefinition.getItemTags().containsAll(finalSelectedItem.getRequiredTags()))
                         .collect(Collectors.toList());
 
-                int randomIndex = random.nextInt(matchingItemDefinitions.size());
-                ItemDefinition selectedItemDefinition = matchingItemDefinitions.get(randomIndex);
+                List<ItemDefinition> matchingItemDefinitionsNotAtMaxCount = matchingItemDefinitions.stream()
+                        .filter(itemDefinition -> ownedItems.stream()
+                                .noneMatch(ownedItem -> ownedItem.getItemDefinition().getId().equals(itemDefinition.getId()) &&
+                                        ownedItem.getCount() + itemsToCreate.getOrDefault(ownedItem.getItemDefinition().getId(), 0) >= itemDefinition.getMaxCount()))
+                        .collect(Collectors.toList());
+
+                int randomIndex = matchingItemDefinitionsNotAtMaxCount.isEmpty()
+                        ? random.nextInt(matchingItemDefinitions.size())
+                        : random.nextInt(matchingItemDefinitionsNotAtMaxCount.size());
+
+                ItemDefinition selectedItemDefinition = matchingItemDefinitionsNotAtMaxCount.isEmpty()
+                        ? matchingItemDefinitions.get(randomIndex)
+                        : matchingItemDefinitionsNotAtMaxCount.get(randomIndex);
 
                 // Add item.
                 itemsToCreate.put(selectedItemDefinition.getId(), itemsToCreate.getOrDefault(selectedItemDefinition.getId(), 0) + 1);
