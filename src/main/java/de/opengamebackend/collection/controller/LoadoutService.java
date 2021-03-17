@@ -76,7 +76,7 @@ public class LoadoutService {
 
             for (LoadoutItem item : loadout.getItems()) {
                 GetLoadoutsResponseLoadoutItem responseItem = new GetLoadoutsResponseLoadoutItem();
-                responseItem.setItemDefinitionId(item.getItemDefinition().getId());
+                responseItem.setId(item.getItemDefinition().getId());
                 responseItem.setCount(item.getCount());
 
                 responseItems.add(responseItem);

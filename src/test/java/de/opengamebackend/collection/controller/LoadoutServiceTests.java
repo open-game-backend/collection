@@ -138,7 +138,7 @@ public class LoadoutServiceTests {
         assertThat(response.getLoadouts().get(0).getType()).isEqualTo(loadoutType.getId());
         assertThat(response.getLoadouts().get(0).getItems()).isNotNull();
         assertThat(response.getLoadouts().get(0).getItems()).hasSize(1);
-        assertThat(response.getLoadouts().get(0).getItems().get(0).getItemDefinitionId()).isEqualTo(loadoutItem.getItemDefinition().getId());
+        assertThat(response.getLoadouts().get(0).getItems().get(0).getId()).isEqualTo(loadoutItem.getItemDefinition().getId());
         assertThat(response.getLoadouts().get(0).getItems().get(0).getCount()).isEqualTo(loadoutItem.getCount());
     }
 
