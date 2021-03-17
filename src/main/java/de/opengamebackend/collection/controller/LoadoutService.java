@@ -166,7 +166,7 @@ public class LoadoutService {
 
                 if (itemTag == null) {
                     throw new ApiException(ApiErrors.UNKNOWN_ITEMTAG_CODE,
-                            ApiErrors.UNKNOWN_ITEMTAG_MESSAGE + " - " + loadoutRule.getItemTag());
+                            ApiErrors.UNKNOWN_ITEMTAG_MESSAGE + loadoutRule.getItemTag());
                 }
 
                 LoadoutRule loadoutRuleEntity = new LoadoutRule();

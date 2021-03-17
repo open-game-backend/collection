@@ -290,7 +290,7 @@ public class LoadoutServiceTests {
         // WHEN & THEN
         assertThatExceptionOfType(ApiException.class)
                 .isThrownBy(() -> loadoutService.putLoadoutTypes(request))
-                .withMessage(ApiErrors.UNKNOWN_ITEMTAG_MESSAGE + " - " + requestTypeRule.getItemTag());
+                .withMessage(ApiErrors.UNKNOWN_ITEMTAG_MESSAGE + requestTypeRule.getItemTag());
     }
 
     @Test

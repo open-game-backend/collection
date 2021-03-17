@@ -63,7 +63,7 @@ public class LoadoutMapper {
             int newCopies = copies.getOrDefault(item.getItemDefinition().getId(), 0) + item.getCount();
 
             if (newCopies > rule.getMaxCopies()) {
-                throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE + " - " +
+                throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE +
                         String.format("Item %s with tag %s occurs more than %d times.",
                                 item.getItemDefinition().getId(), rule.getItemTag().getTag(), rule.getMaxCopies()));
             }
@@ -72,13 +72,13 @@ public class LoadoutMapper {
         }
 
         if (count < rule.getMinTotal()) {
-            throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE + " - " +
+            throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE +
                     String.format("Items with tag %s occur less than %d times.",
                             rule.getItemTag().getTag(), rule.getMinTotal()));
         }
 
         if (count > rule.getMaxTotal()) {
-            throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE + " - " +
+            throw new ApiException(ApiErrors.INVALID_LOADOUT_CODE, ApiErrors.INVALID_LOADOUT_MESSAGE +
                     String.format("Items with tag %s occur more than %d times.",
                             rule.getItemTag().getTag(), rule.getMaxTotal()));
         }
