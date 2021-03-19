@@ -439,7 +439,8 @@ public class CollectionService {
                         .collect(Collectors.toList());
 
                 List<ItemDefinition> matchingItemDefinitionsNotAtMaxCount = matchingItemDefinitions.stream()
-                        .filter(itemDefinition -> ownedItems.stream()
+                        .filter(itemDefinition -> itemDefinition.getMaxCount() == null ||
+                                ownedItems.stream()
                                 .noneMatch(ownedItem -> ownedItem.getItemDefinition().getId().equals(itemDefinition.getId()) &&
                                         ownedItem.getCount() + itemsToCreate.getOrDefault(ownedItem.getItemDefinition().getId(), 0) >= itemDefinition.getMaxCount()))
                         .collect(Collectors.toList());
