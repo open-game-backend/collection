@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>de.opengamebackend</groupId>
 	<artifactId>collection</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>collection</name>
 	<description>Provides access to all items owned by the players, along with their types and loadouts.</description>
 
