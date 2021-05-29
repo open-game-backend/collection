@@ -1,6 +1,6 @@
 CREATE TABLE collection_containeditem (
     id INT NOT NULL AUTO_INCREMENT,
-    item_container_id VARCHAR(100) NOT NULL,
+    item_container_id INT NOT NULL,
     relative_probability INT(10) UNSIGNED NOT NULL,
 
     PRIMARY KEY (id),
