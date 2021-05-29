@@ -1,6 +1,6 @@
 CREATE TABLE collection_loadoutitem (
     id INT NOT NULL AUTO_INCREMENT,
-    loadout_id VARCHAR(100) NOT NULL,
+    loadout_id INT NOT NULL,
     item_definition_id VARCHAR(100) NOT NULL,
     count INT(10) UNSIGNED NOT NULL,
 

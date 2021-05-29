@@ -7,4 +7,4 @@ CREATE TABLE collection_loadout (
     FOREIGN KEY (type_id) REFERENCES collection_loadouttype(id)
 );
 
-CREATE INDEX ix_collection_loadou_player_id ON collection_loadout (player_id);
+CREATE INDEX ix_collection_loadout_player_id ON collection_loadout (player_id);
